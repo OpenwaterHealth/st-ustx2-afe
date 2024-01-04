@@ -49,6 +49,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -57,8 +59,20 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define HB_LED_Pin GPIO_PIN_12
-#define HB_LED_GPIO_Port GPIOB
+#define nINTERRUPT_Pin GPIO_PIN_0
+#define nINTERRUPT_GPIO_Port GPIOA
+#define FAN_Pin GPIO_PIN_0
+#define FAN_GPIO_Port GPIOB
+#define PWR_GOOD_Pin GPIO_PIN_1
+#define PWR_GOOD_GPIO_Port GPIOB
+#define nHB_LED_Pin GPIO_PIN_12
+#define nHB_LED_GPIO_Port GPIOB
+#define CS_TXA_Pin GPIO_PIN_11
+#define CS_TXA_GPIO_Port GPIOA
+#define CS_TXB_Pin GPIO_PIN_12
+#define CS_TXB_GPIO_Port GPIOA
+#define READY_Pin GPIO_PIN_5
+#define READY_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
