@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "i2c_slave.h"
+#include "afe_config.h"
+#include "utils.h"
 
 /* USER CODE END Includes */
 
@@ -40,6 +42,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define RUN_TESTS
+#define ENABLE_UART_PRINTF
 
 /* USER CODE END PD */
 
@@ -49,16 +53,20 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+CRC_HandleTypeDef hcrc;
+
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim21;
 
 UART_HandleTypeDef huart5;
 
 /* USER CODE BEGIN PV */
+DeviceConfig_t myConfig;
 
 /* USER CODE END PV */
 
@@ -70,6 +78,8 @@ static void MX_SPI1_Init(void);
 static void MX_USART5_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_CRC_Init(void);
+static void MX_TIM21_Init(void);
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
 	/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
@@ -85,6 +95,7 @@ static void MX_I2C1_Init(void);
 /* USER CODE BEGIN 0 */
 #ifdef __GNUC__
 int _write(int fd, const void *buf, size_t count){
+#ifdef ENABLE_UART_PRINTF
 	const uint8_t * ptrBuf = buf;
 
 	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
@@ -94,6 +105,7 @@ int _write(int fd, const void *buf, size_t count){
 		ptrBuf++;
 	}
 	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
+#endif
 	return count;
 }
 #else
@@ -105,6 +117,18 @@ PUTCHAR_PROTOTYPE
   return ch;
 }
 #endif
+
+static void PrintI2CSpeed(I2C_HandleTypeDef* hi2c) {
+    uint32_t timing = hi2c->Init.Timing;
+    uint32_t pclk = HAL_RCC_GetPCLK1Freq(); // Get the peripheral clock frequency
+
+    // Calculate the I2C speed in Hz
+    uint32_t i2c_speed = pclk / ((timing & 0xFFFF) + 1);
+
+    printf("I2C Speed: %ld kHz\r\n", i2c_speed / 10); // Print the I2C speed in kHz
+    printf("I2C Slave Addr: 0x%02x\r\n\r\n", (uint8_t)(hi2c->Init.OwnAddress1 >> 1));
+}
+
 
 /* USER CODE END 0 */
 
@@ -141,11 +165,26 @@ int main(void)
   MX_USART5_UART_Init();
   MX_TIM3_Init();
   MX_I2C1_Init();
+  MX_CRC_Init();
+  MX_TIM21_Init();
   /* USER CODE BEGIN 2 */
   printf("\033c");
   printf("Openwater USTX2 AFE Development v1.0\r\n\r\n");
+  printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
+  printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
-  I2C_Slave_Init();
+  I2C_Slave_Init(myConfig.i2c_address);
+  PrintI2CSpeed(&hi2c1);
+
+#ifdef RUN_TESTS
+  if(crc_test()==1){
+	  printf("CRC Test Failed\r\n\r\n");
+  }
+  else
+  {
+	  printf("CRC Test Passed\r\n\r\n");
+  }
+#endif
 
   /* USER CODE END 2 */
 
@@ -210,6 +249,40 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
+  hcrc.Init.GeneratingPolynomial = 4129;
+  hcrc.Init.CRCLength = CRC_POLYLENGTH_16B;
+  hcrc.Init.InitValue = 0xFFFF;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
+
 }
 
 /**
@@ -392,6 +465,51 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM21 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM21_Init(void)
+{
+
+  /* USER CODE BEGIN TIM21_Init 0 */
+
+  /* USER CODE END TIM21_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM21_Init 1 */
+
+  /* USER CODE END TIM21_Init 1 */
+  htim21.Instance = TIM21;
+  htim21.Init.Prescaler = 0;
+  htim21.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim21.Init.Period = 65535;
+  htim21.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim21.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim21) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim21, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim21, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM21_Init 2 */
+
+  /* USER CODE END TIM21_Init 2 */
 
 }
 

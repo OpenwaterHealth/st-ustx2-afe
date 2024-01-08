@@ -14,7 +14,7 @@
 extern I2C_HandleTypeDef hi2c1;
 
 // Function prototypes for I2C slave operations
-void I2C_Slave_Init(void);
+void I2C_Slave_Init(uint8_t addr);
 void I2C_Slave_ProcessData(uint8_t data);
 
 

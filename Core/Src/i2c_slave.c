@@ -14,7 +14,19 @@ extern I2C_HandleTypeDef hi2c1;
 /* Variable used to trig an address match code event */
 __IO uint32_t     uwTransferRequested = 0;
 
-void I2C_Slave_Init() {
+void I2C_Slave_Init(uint8_t addr) {
+  if(addr == 0x00 || addr > 0x3F){
+	  hi2c1.Init.OwnAddress1  = 0x32 << 1;  // default to 32
+  }else{
+	  hi2c1.Init.OwnAddress1  = addr << 1;
+  }
+
+  // Reinitialize the I2C peripheral with the updated configuration
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+	  // Handle the error if reinitialization fails
+	  Error_Handler();
+  }
+
   if(HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK)
   {
 	/* Transfer error in reception process */
@@ -32,9 +44,6 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 {
   /* Reset address match code event */
   uwTransferRequested = 0;
-
-  /* Turn LED2 off: Transfer in transmission process is correct */
-  HAL_GPIO_WritePin(nHB_LED_GPIO_Port, nHB_LED_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -48,9 +57,6 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 {
 	/* Reset address match code event */
 	uwTransferRequested = 0;
-
-    /* Turn On LED2 */
-	HAL_GPIO_WritePin(nHB_LED_GPIO_Port, nHB_LED_Pin, GPIO_PIN_SET);
 
 }
 
@@ -101,9 +107,6 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *I2cHandle)
     */
   if (HAL_I2C_GetError(I2cHandle) != HAL_I2C_ERROR_AF)
   {
-    /* Turn Off LED2 */
-	HAL_GPIO_WritePin(nHB_LED_GPIO_Port, nHB_LED_Pin, GPIO_PIN_RESET);
-
     Error_Handler();
   }
 }
