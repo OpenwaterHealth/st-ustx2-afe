@@ -21,11 +21,20 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include "i2c_slave.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+#ifdef __GNUC__
+	/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
+		 set to 'Yes') calls __io_putchar() */
+	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
 
 /* USER CODE END PTD */
 
@@ -62,11 +71,40 @@ static void MX_USART5_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
+#ifdef __GNUC__
+	/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
+		 set to 'Yes') calls __io_putchar() */
+	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifdef __GNUC__
+int _write(int fd, const void *buf, size_t count){
+	const uint8_t * ptrBuf = buf;
+
+	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
+	for(int i=0; i< count; i++)
+	{
+		HAL_UART_Transmit(&huart5, ptrBuf, 1, 5);
+		ptrBuf++;
+	}
+	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
+	return count;
+}
+#else
+PUTCHAR_PROTOTYPE
+{
+  /* Place your implementation of fputc here */
+	//HAL_UART_Transmit(&huart5, (uint8_t *)&ch, 1,10);
+	UART_putChar( (uint8_t) ch);
+  return ch;
+}
+#endif
 
 /* USER CODE END 0 */
 
@@ -104,7 +142,10 @@ int main(void)
   MX_TIM3_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_I2C_EnableListen_IT(&hi2c1);
+  printf("\033c");
+  printf("Openwater USTX2 AFE Development v1.0\r\n\r\n");
+
+  I2C_Slave_Init();
 
   /* USER CODE END 2 */
 
@@ -188,13 +229,13 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x00707CBB;
-  hi2c1.Init.OwnAddress1 = 132;
+  hi2c1.Init.OwnAddress1 = 104;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
   hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
@@ -236,13 +277,13 @@ static void MX_I2C2_Init(void)
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
   hi2c2.Init.Timing = 0x00707CBB;
-  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.OwnAddress1 = 100;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c2.Init.OwnAddress2 = 0;
   hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();
@@ -436,20 +477,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode) {
-    // Address match callback
-    // This function is called when the I2C slave address is matched by the master
-}
-
-void HAL_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c) {
-    // Data reception callback
-    // This function is called when data is received from the master
-}
-
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
-    // Error callback
-    // Handle I2C errors here
-}
 /* USER CODE END 4 */
 
 /**
