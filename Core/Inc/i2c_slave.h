@@ -11,7 +11,16 @@
 #include "main.h"
 #include <stdio.h>
 
-extern I2C_HandleTypeDef hi2c1;
+enum DeviceState {
+  // initial state
+  STATE_INITIAL = 0,
+  // receiving packet
+  STATE_RECEIVING_PACKET,
+  // sending packet
+  STATE_SENDING_PACKET,
+  // packet complete
+  STATE_COMPLETED_PACKET
+};
 
 // Function prototypes for I2C slave operations
 void I2C_Slave_Init(uint8_t addr);

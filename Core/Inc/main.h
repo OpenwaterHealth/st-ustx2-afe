@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "command_queue.h"
 
 /* USER CODE END Includes */
 
@@ -56,6 +57,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 extern UART_HandleTypeDef huart5;
+extern I2C_HandleTypeDef hi2c1;
+extern CommandQueue commandQueue;
 
 /* USER CODE END EFP */
 
@@ -77,7 +80,8 @@ extern UART_HandleTypeDef huart5;
 
 /* USER CODE BEGIN Private defines */
 // #define RUN_TESTS
-#define ENABLE_UART_PRINTF
+#define COMMAND_QUEUE_SIZE 10
+// #define DEBUG_COMMS
 
 /* USER CODE END Private defines */
 

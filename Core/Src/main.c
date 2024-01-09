@@ -62,6 +62,9 @@ DMA_HandleTypeDef hdma_usart5_tx;
 /* USER CODE BEGIN PV */
 DeviceConfig_t myConfig;
 
+uint8_t queueBuffer[COMMAND_QUEUE_SIZE];
+CommandQueue commandQueue;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -141,6 +144,10 @@ int main(void)
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
+  printf("Initializing Command QUEUE\r\n");
+  // Initialize the command queue
+  CommandQueue_Init(&commandQueue, queueBuffer, COMMAND_QUEUE_SIZE);
+
   I2C_Slave_Init(myConfig.i2c_address);
   PrintI2CSpeed(&hi2c1);
 
@@ -158,13 +165,28 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t dequeuedData;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
-	HAL_Delay(500);
+
+    if (CommandQueue_Dequeue(&commandQueue, &dequeuedData)) {
+        // Process commadn
+    	switch(dequeuedData)
+    	{
+			case CMD_TOGGLE_LED:
+				printf("Toggling LED\r\n");
+				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
+				break;
+			default:
+				printf("Unknown Command: 0x%02x\r\n", dequeuedData);
+				break;
+    	}
+    }else{
+    	HAL_Delay(25);
+    }
   }
   /* USER CODE END 3 */
 }
