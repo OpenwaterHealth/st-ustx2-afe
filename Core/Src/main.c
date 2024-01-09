@@ -25,25 +25,17 @@
 #include "i2c_slave.h"
 #include "afe_config.h"
 #include "utils.h"
+#include "logging.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#ifdef __GNUC__
-	/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
-		 set to 'Yes') calls __io_putchar() */
-	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif /* __GNUC__ */
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RUN_TESTS
-#define ENABLE_UART_PRINTF
 
 /* USER CODE END PD */
 
@@ -64,6 +56,8 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim21;
 
 UART_HandleTypeDef huart5;
+DMA_HandleTypeDef hdma_usart5_rx;
+DMA_HandleTypeDef hdma_usart5_tx;
 
 /* USER CODE BEGIN PV */
 DeviceConfig_t myConfig;
@@ -73,6 +67,7 @@ DeviceConfig_t myConfig;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART5_UART_Init(void);
@@ -81,42 +76,11 @@ static void MX_I2C1_Init(void);
 static void MX_CRC_Init(void);
 static void MX_TIM21_Init(void);
 /* USER CODE BEGIN PFP */
-#ifdef __GNUC__
-	/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
-		 set to 'Yes') calls __io_putchar() */
-	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif /* __GNUC__ */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#ifdef __GNUC__
-int _write(int fd, const void *buf, size_t count){
-#ifdef ENABLE_UART_PRINTF
-	const uint8_t * ptrBuf = buf;
-
-	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
-	for(int i=0; i< count; i++)
-	{
-		HAL_UART_Transmit(&huart5, ptrBuf, 1, 5);
-		ptrBuf++;
-	}
-	while (HAL_UART_GetState(&huart5) == HAL_UART_STATE_BUSY_TX);
-#endif
-	return count;
-}
-#else
-PUTCHAR_PROTOTYPE
-{
-  /* Place your implementation of fputc here */
-	//HAL_UART_Transmit(&huart5, (uint8_t *)&ch, 1,10);
-	UART_putChar( (uint8_t) ch);
-  return ch;
-}
-#endif
 
 static void PrintI2CSpeed(I2C_HandleTypeDef* hi2c) {
     uint32_t timing = hi2c->Init.Timing;
@@ -160,6 +124,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
   MX_USART5_UART_Init();
@@ -168,7 +133,10 @@ int main(void)
   MX_CRC_Init();
   MX_TIM21_Init();
   /* USER CODE BEGIN 2 */
+
   printf("\033c");
+
+  init_dma_logging();
   printf("Openwater USTX2 AFE Development v1.0\r\n\r\n");
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -545,6 +513,22 @@ static void MX_USART5_UART_Init(void)
   /* USER CODE BEGIN USART5_Init 2 */
 
   /* USER CODE END USART5_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel2_3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
 

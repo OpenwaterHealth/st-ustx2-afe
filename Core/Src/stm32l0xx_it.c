@@ -56,6 +56,9 @@
 
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c2;
+extern DMA_HandleTypeDef hdma_usart5_rx;
+extern DMA_HandleTypeDef hdma_usart5_tx;
+extern UART_HandleTypeDef huart5;
 extern TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN EV */
@@ -141,6 +144,35 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32l0xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles DMA1 channel 2 and channel 3 interrupts.
+  */
+void DMA1_Channel2_3_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel2_3_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart5_rx);
+  HAL_DMA_IRQHandler(&hdma_usart5_tx);
+  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel2_3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART4 and USART5 interrupt.
+  */
+void USART4_5_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART4_5_IRQn 0 */
+
+  /* USER CODE END USART4_5_IRQn 0 */
+  HAL_UART_IRQHandler(&huart5);
+  /* USER CODE BEGIN USART4_5_IRQn 1 */
+
+  /* USER CODE END USART4_5_IRQn 1 */
+}
 
 /**
   * @brief This function handles TIM2 global interrupt.

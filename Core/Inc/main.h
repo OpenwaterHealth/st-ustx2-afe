@@ -55,6 +55,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+extern UART_HandleTypeDef huart5;
 
 /* USER CODE END EFP */
 
@@ -75,6 +76,8 @@ void Error_Handler(void);
 #define READY_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+// #define RUN_TESTS
+#define ENABLE_UART_PRINTF
 
 /* USER CODE END Private defines */
 
