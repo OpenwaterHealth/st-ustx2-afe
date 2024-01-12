@@ -122,6 +122,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
+  loadDeviceConfig(&myConfig);
 
   /* USER CODE END SysInit */
 
@@ -171,9 +172,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
     if (CommandQueue_Dequeue(&commandQueue, &dequeuedData)) {
-        // Process commadn
+        // Process command
     	switch(dequeuedData)
     	{
 			case CMD_TOGGLE_LED:
@@ -187,6 +187,7 @@ int main(void)
     }else{
     	HAL_Delay(25);
     }
+
   }
   /* USER CODE END 3 */
 }
