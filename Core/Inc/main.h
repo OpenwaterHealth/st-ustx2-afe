@@ -59,18 +59,37 @@ void Error_Handler(void);
 extern UART_HandleTypeDef huart5;
 extern I2C_HandleTypeDef hi2c1;
 extern CommandQueue commandQueue;
+extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define nINTERRUPT_Pin GPIO_PIN_0
 #define nINTERRUPT_GPIO_Port GPIOA
+#define DSEL0_Pin GPIO_PIN_1
+#define DSEL0_GPIO_Port GPIOA
+#define DSEL1_Pin GPIO_PIN_2
+#define DSEL1_GPIO_Port GPIOA
+#define TR_EN_Pin GPIO_PIN_4
+#define TR_EN_GPIO_Port GPIOA
+#define SPI_SCK_Pin GPIO_PIN_5
+#define SPI_SCK_GPIO_Port GPIOA
+#define SPI_MISO_Pin GPIO_PIN_6
+#define SPI_MISO_GPIO_Port GPIOA
+#define SPI_MOSI_Pin GPIO_PIN_7
+#define SPI_MOSI_GPIO_Port GPIOA
 #define FAN_Pin GPIO_PIN_0
 #define FAN_GPIO_Port GPIOB
 #define PWR_GOOD_Pin GPIO_PIN_1
 #define PWR_GOOD_GPIO_Port GPIOB
 #define nHB_LED_Pin GPIO_PIN_12
 #define nHB_LED_GPIO_Port GPIOB
+#define CW_EN_Pin GPIO_PIN_8
+#define CW_EN_GPIO_Port GPIOA
+#define STDBY_Pin GPIO_PIN_9
+#define STDBY_GPIO_Port GPIOA
+#define RESET_L_Pin GPIO_PIN_10
+#define RESET_L_GPIO_Port GPIOA
 #define CS_TXA_Pin GPIO_PIN_11
 #define CS_TXA_GPIO_Port GPIOA
 #define CS_TXB_Pin GPIO_PIN_12

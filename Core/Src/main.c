@@ -571,13 +571,19 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, nINTERRUPT_Pin|CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, nINTERRUPT_Pin|DSEL0_Pin|DSEL1_Pin|TR_EN_Pin
+                          |CW_EN_Pin|STDBY_Pin|RESET_L_Pin|CS_TXA_Pin
+                          |CS_TXB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, nHB_LED_Pin|READY_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : nINTERRUPT_Pin CS_TXA_Pin CS_TXB_Pin */
-  GPIO_InitStruct.Pin = nINTERRUPT_Pin|CS_TXA_Pin|CS_TXB_Pin;
+  /*Configure GPIO pins : nINTERRUPT_Pin DSEL0_Pin DSEL1_Pin TR_EN_Pin
+                           CW_EN_Pin STDBY_Pin RESET_L_Pin CS_TXA_Pin
+                           CS_TXB_Pin */
+  GPIO_InitStruct.Pin = nINTERRUPT_Pin|DSEL0_Pin|DSEL1_Pin|TR_EN_Pin
+                          |CW_EN_Pin|STDBY_Pin|RESET_L_Pin|CS_TXA_Pin
+                          |CS_TXB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
