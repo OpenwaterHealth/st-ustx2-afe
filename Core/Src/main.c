@@ -26,6 +26,7 @@
 #include "afe_config.h"
 #include "utils.h"
 #include "logging.h"
+#include "tx7332.h"
 
 /* USER CODE END Includes */
 
@@ -64,6 +65,8 @@ DeviceConfig_t myConfig;
 
 uint8_t queueBuffer[COMMAND_QUEUE_SIZE];
 CommandQueue commandQueue;
+
+TX7332 tx[2];
 
 /* USER CODE END PV */
 
@@ -144,6 +147,24 @@ int main(void)
   printf("Openwater USTX2 AFE Development v1.0\r\n\r\n");
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
+
+  printf("Initializing TX7332\r\n");
+  HAL_GPIO_WritePin(GPIOC, RESET_L_Pin|CW_EN_Pin|STDBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_SET);
+
+  // configure CS for TX7332
+  TX7332_Init(&tx[0], CS_TXA_GPIO_Port, CS_TXA_Pin);
+  TX7332_Init(&tx[1], CS_TXB_GPIO_Port, CS_TXB_Pin);
+
+  // reset TX7332
+  TX7332_Reset();
+  HAL_Delay(25);
+
+  HAL_GPIO_WritePin(CW_EN_GPIO_Port, CW_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
 
   printf("Initializing Command QUEUE\r\n");
   // Initialize the command queue
@@ -567,23 +588,40 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, nINTERRUPT_Pin|DSEL0_Pin|DSEL1_Pin|TR_EN_Pin
-                          |CW_EN_Pin|STDBY_Pin|RESET_L_Pin|CS_TXA_Pin
-                          |CS_TXB_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin|CW_EN_Pin
+                          |STDBY_Pin|RESET_L_Pin|CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, nHB_LED_Pin|READY_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : nINTERRUPT_Pin DSEL0_Pin DSEL1_Pin TR_EN_Pin
-                           CW_EN_Pin STDBY_Pin RESET_L_Pin CS_TXA_Pin
-                           CS_TXB_Pin */
-  GPIO_InitStruct.Pin = nINTERRUPT_Pin|DSEL0_Pin|DSEL1_Pin|TR_EN_Pin
-                          |CW_EN_Pin|STDBY_Pin|RESET_L_Pin|CS_TXA_Pin
-                          |CS_TXB_Pin;
+  /*Configure GPIO pins : PC13 PC14 PC15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PH0 PH1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : nINTERRUPT_Pin PA3 nESTOP_Pin */
+  GPIO_InitStruct.Pin = nINTERRUPT_Pin|GPIO_PIN_3|nESTOP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DSEL0_Pin DSEL1_Pin TR_EN_Pin CW_EN_Pin
+                           STDBY_Pin RESET_L_Pin CS_TXA_Pin CS_TXB_Pin */
+  GPIO_InitStruct.Pin = DSEL0_Pin|DSEL1_Pin|TR_EN_Pin|CW_EN_Pin
+                          |STDBY_Pin|RESET_L_Pin|CS_TXA_Pin|CS_TXB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -594,6 +632,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(PWR_GOOD_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB2 PB10 PB11 PB15
+                           PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_15
+                          |GPIO_PIN_8|GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : nHB_LED_Pin READY_Pin */
   GPIO_InitStruct.Pin = nHB_LED_Pin|READY_Pin;

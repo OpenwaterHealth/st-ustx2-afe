@@ -94,6 +94,8 @@ extern SPI_HandleTypeDef hspi1;
 #define CS_TXA_GPIO_Port GPIOA
 #define CS_TXB_Pin GPIO_PIN_12
 #define CS_TXB_GPIO_Port GPIOA
+#define nESTOP_Pin GPIO_PIN_15
+#define nESTOP_GPIO_Port GPIOA
 #define READY_Pin GPIO_PIN_5
 #define READY_GPIO_Port GPIOB
 
