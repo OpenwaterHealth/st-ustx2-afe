@@ -23,7 +23,9 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "i2c_slave.h"
+#include "i2c_master.h"
 #include "afe_config.h"
+#include "config_CDCE6214_64MHZ.h"
 #include "utils.h"
 #include "logging.h"
 #include "tx7332.h"
@@ -172,6 +174,34 @@ int main(void)
 
   I2C_Slave_Init(myConfig.i2c_address);
   PrintI2CSpeed(&hi2c1);
+
+  printf("Scanning Local I2C bus\r\n");
+  I2C_scan();
+
+
+  printf("Configuring Clock chip\r\n");
+  // Calculate the number of elements in the array
+  size_t num_elements = sizeof(cdce6214_64mhz_values) / sizeof(uint32_t);
+
+  // Iterate through the array and split each uint32_t value into two uint16_t values
+  for (size_t i = 0; i < num_elements; i++) {
+      uint32_t value = cdce6214_64mhz_values[i];
+
+      // Split the value into upper and lower words
+      uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
+      uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
+
+      // Print the split values
+	  if(!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value)){
+		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
+	  }
+  }
+
+  for(uint16_t x = 0; x < 86; x++){
+	  printf("Read R%d: ", x);
+	  uint16_t reg_val = I2C_read_CDCE6214_reg(0x67, x);
+	  printf("0x%04x\r\n", reg_val);
+  }
 
 #ifdef RUN_TESTS
   if(crc_test()==1){
