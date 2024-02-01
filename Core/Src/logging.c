@@ -88,14 +88,17 @@ static uint8_t usart_start_tx_dma_transfer(void) {
     return 1;
 }
 
-void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart)
+void logging_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart)
 {
 
 }
 
+void logging_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
 
+}
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+void logging_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	bPrintfTransferComplete = true;
     lwrb_skip(&usart_tx_buff, usart_tx_dma_current_len);/* Data sent, ignore these */

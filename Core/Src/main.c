@@ -168,9 +168,20 @@ int main(void)
   HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
 
-  printf("Initializing Command QUEUE\r\n");
-  // Initialize the command queue
-  CommandQueue_Init(&commandQueue, queueBuffer, COMMAND_QUEUE_SIZE);
+  uint8_t CLOCK_I2C_ADDR = 0x00;
+
+  printf("Initializing Clock Chip\r\n");
+  // hold power down low
+  HAL_GPIO_WritePin(PDN_GPIO_Port, PDN_Pin, GPIO_PIN_RESET);
+  HAL_Delay(30);
+  HAL_GPIO_WritePin(HW_SW_CTRL_GPIO_Port, HW_SW_CTRL_Pin, GPIO_PIN_RESET);
+  CLOCK_I2C_ADDR = (uint8_t) HAL_GPIO_ReadPin(HW_SW_CTRL_GPIO_Port, HW_SW_CTRL_Pin) == GPIO_PIN_SET ? CDCE6214_I2C_ADDR_1:CDCE6214_I2C_ADDR_0;
+  printf("CLOCK I2C Address Set to: 0x%02X\r\n", CLOCK_I2C_ADDR);
+  HAL_GPIO_WritePin(REFSEL_GPIO_Port, REFSEL_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  // set power down high
+  HAL_GPIO_WritePin(PDN_GPIO_Port, PDN_Pin, GPIO_PIN_SET);;
+  HAL_Delay(30);
 
   I2C_Slave_Init(myConfig.i2c_address);
   PrintI2CSpeed(&hi2c1);
@@ -178,11 +189,113 @@ int main(void)
   printf("Scanning Local I2C bus\r\n");
   I2C_scan();
 
+  uint16_t reg_val = I2C_read_CDCE6214_EEPROM(CLOCK_I2C_ADDR, 0x23);
+  printf("R%d = 0x%04x\r\n", 0x23, reg_val);
+
+#if 0
+  for(uint16_t x = 0; x < 86; x++){
+	  printf("Read R%d: ", x);
+	  uint16_t reg_val = I2C_read_CDCE6214_EEPROM(CLOCK_I2C_ADDR, x);
+	  printf("R%d = 0x%04x\r\n",x, reg_val);
+  }
+
+  printf("Unlocking EEPROM\r\n");
+  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, 0x000F, 0x5000)){
+	  printf("Error Unlocking chip\r\n");
+  }else{
+	  uint16_t reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, 0x000F);
+	  printf("R15 Value: 0x%04x\r\n", reg_val);
+  }
+
+  // Calculate the number of elements in the array
+  size_t num_elements = sizeof(cdce6214_64mhz_values) / sizeof(uint32_t);
+  printf("Writing %d Registers ..\r\n", num_elements);
+  // Iterate through the array and split each uint32_t value into two uint16_t values
+  for (int i = 2; i <num_elements; i++) {
+      uint32_t value = cdce6214_64mhz_values[i];
+      uint16_t read_val = 0x00;
+
+      // Split the value into upper and lower words
+      uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
+      uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
+	  HAL_Delay(1);
+
+      // Print the split values
+      printf("Register: R%d Write Address: 0x%04x Value: 0x%04x\r\n", reg_addr, reg_addr, reg_value);
+	  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr, reg_value)){
+		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
+	  }
+	  HAL_Delay(50);
+
+	  read_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr);
+	  printf("R%d Value: 0x%04x\r\n", reg_addr, read_val);
+	  HAL_Delay(250);
+  }
+
+
+  printf("Unlocking EEPROM\r\n");
+  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, 0x000F, 0x5000)){
+	  printf("Error Unlocking chip\r\n");
+  }else{
+	  uint16_t reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, 0x000F);
+	  printf("R15 Value: 0x%04x\r\n", reg_val);
+  }
+
+  // Calculate the number of elements in the array
+  size_t num_elements = sizeof(cdce6214_64mhz_values) / sizeof(uint32_t);
+  printf("Writing %d Registers ..\r\n", num_elements);
+  // Iterate through the array and split each uint32_t value into two uint16_t values
+  for (int i = 2; i <num_elements; i++) {
+      uint32_t value = cdce6214_64mhz_values[i];
+
+      // Split the value into upper and lower words
+      uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
+      uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
+	  HAL_Delay(1);
+
+      // Print the split values
+      printf("Register: R%d Write Address: 0x%04X Value: 0x%04X\r\n", reg_addr, reg_addr, reg_value);
+	  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr, reg_value)){
+		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
+	  }
+	  HAL_Delay(5);
+  }
+
+  for(uint16_t x = 0; x < 86; x++){
+	  printf("Read R%d: ", x);
+	  uint16_t reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, x);
+	  printf("0x%04x\r\n", reg_val);
+  }
+
+#endif
+
+#ifdef RUN_TESTS
+  printf("Testing Read?Write of Clock Register\r\n");
+  uint32_t combined = 0x000C7002; // selects location and value to program
+  uint16_t reg_addr = (uint16_t)(combined >> 16); // Upper word is reg_addr
+  uint16_t reg_val = 0x0000;
+
+  // read current value
+  reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr);
+  printf("Before Write: reg_addr = 0x%04X, 0x%04x\r\n", reg_addr, reg_val);
+
+  // write new value
+  reg_val = 0x0000;
+  reg_val = (uint16_t)combined;        // Lower word is reg_value
+  printf("Write: reg_addr = 0x%04X, 0x%04x\r\n", reg_addr, reg_val);
+  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr, reg_val)){
+	printf("I2C Write ERROR reg_addr = 0x%04X, reg_value = 0x%04X\r\n", reg_addr, reg_val);
+  }
+
+  // read back value of register
+  reg_val = 0x0000;
+  reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr);
+  printf("After Write: reg_addr = 0x%04X, 0x%04x\r\n", reg_addr, reg_val);
 
   printf("Configuring Clock chip\r\n");
   // Calculate the number of elements in the array
   size_t num_elements = sizeof(cdce6214_64mhz_values) / sizeof(uint32_t);
-
+  printf("Writing %d Registers ..\r\n", num_elements);
   // Iterate through the array and split each uint32_t value into two uint16_t values
   for (size_t i = 0; i < num_elements; i++) {
       uint32_t value = cdce6214_64mhz_values[i];
@@ -192,18 +305,19 @@ int main(void)
       uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
 
       // Print the split values
-	  if(!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value)){
+      printf("Write Address: 0x%04X Value: 0x%04X\r\n", reg_addr, reg_value);
+	  if(!I2C_write_CDCE6214_reg(CLOCK_I2C_ADDR, reg_addr, reg_value)){
 		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
 	  }
+	  HAL_Delay(5);
   }
 
   for(uint16_t x = 0; x < 86; x++){
 	  printf("Read R%d: ", x);
-	  uint16_t reg_val = I2C_read_CDCE6214_reg(0x67, x);
+	  uint16_t reg_val = I2C_read_CDCE6214_reg(CLOCK_I2C_ADDR, x);
 	  printf("0x%04x\r\n", reg_val);
   }
 
-#ifdef RUN_TESTS
   if(crc_test()==1){
 	  printf("CRC Test Failed\r\n\r\n");
   }
@@ -212,6 +326,11 @@ int main(void)
 	  printf("CRC Test Passed\r\n\r\n");
   }
 #endif
+
+
+  printf("Initializing Command QUEUE\r\n");
+  // Initialize the command queue
+  CommandQueue_Init(&commandQueue, queueBuffer, COMMAND_QUEUE_SIZE);
 
   /* USER CODE END 2 */
 
@@ -624,16 +743,23 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, REFSEL_Pin|HW_SW_CTRL_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(PDN_GPIO_Port, PDN_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin|CW_EN_Pin
                           |STDBY_Pin|RESET_L_Pin|CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, nHB_LED_Pin|READY_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 PC14 PC15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  /*Configure GPIO pins : REFSEL_Pin PDN_Pin HW_SW_CTRL_Pin */
+  GPIO_InitStruct.Pin = REFSEL_Pin|PDN_Pin|HW_SW_CTRL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PH0 PH1 */
@@ -683,7 +809,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
 
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance == USART5)
+    {
+		logging_UART_TxCpltCallback(huart);
+	}
+}
 /* USER CODE END 4 */
 
 /**

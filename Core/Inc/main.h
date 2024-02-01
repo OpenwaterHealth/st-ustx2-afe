@@ -64,6 +64,12 @@ extern SPI_HandleTypeDef hspi1;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define REFSEL_Pin GPIO_PIN_13
+#define REFSEL_GPIO_Port GPIOC
+#define PDN_Pin GPIO_PIN_14
+#define PDN_GPIO_Port GPIOC
+#define HW_SW_CTRL_Pin GPIO_PIN_15
+#define HW_SW_CTRL_GPIO_Port GPIOC
 #define nINTERRUPT_Pin GPIO_PIN_0
 #define nINTERRUPT_GPIO_Port GPIOA
 #define DSEL0_Pin GPIO_PIN_1
