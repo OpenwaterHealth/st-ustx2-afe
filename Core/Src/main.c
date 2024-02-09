@@ -178,6 +178,11 @@ int main(void)
   printf("Scanning Local I2C bus\r\n");
   I2C_scan();
 
+  HAL_Delay(25);
+  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1000);
+  HAL_Delay(25);
+  I2C_write_CDCE6214_reg(0x67, 0x000F, 0x5020);
+  HAL_Delay(25);
 
   printf("Configuring Clock chip\r\n");
   // Calculate the number of elements in the array
@@ -195,7 +200,15 @@ int main(void)
 	  if(!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value)){
 		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
 	  }
+	  HAL_Delay(1);
   }
+
+  HAL_Delay(100);
+  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1110);
+  HAL_Delay(100);
+  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
+
+#ifdef RUN_TESTS
 
   for(uint16_t x = 0; x < 86; x++){
 	  printf("Read R%d: ", x);
@@ -203,7 +216,8 @@ int main(void)
 	  printf("0x%04x\r\n", reg_val);
   }
 
-#ifdef RUN_TESTS
+  HAL_Delay(25);
+
   if(crc_test()==1){
 	  printf("CRC Test Failed\r\n\r\n");
   }
