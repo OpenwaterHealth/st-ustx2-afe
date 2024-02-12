@@ -29,6 +29,7 @@
 #include "utils.h"
 #include "logging.h"
 #include "tx7332.h"
+#include "demo.h"
 
 /* USER CODE END Includes */
 
@@ -153,7 +154,7 @@ int main(void)
   printf("Initializing TX7332\r\n");
   HAL_GPIO_WritePin(GPIOC, RESET_L_Pin|CW_EN_Pin|STDBY_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_SET);  	//TODO: Verify initial state
 
   // configure CS for TX7332
   TX7332_Init(&tx[0], CS_TXA_GPIO_Port, CS_TXA_Pin);
@@ -207,6 +208,9 @@ int main(void)
   I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1110);
   HAL_Delay(100);
   I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
+
+  printf("Running Demo TX7332 Register Set\r\n");
+  write_demo_registers(&tx[0]);
 
 #ifdef RUN_TESTS
 
