@@ -6,6 +6,7 @@
  */
 #include "demo.h"
 #include "main.h"
+#include <stdio.h>
 
 unsigned int reg_values[][2] = {
         {0x00, 0x00000000},
@@ -64,7 +65,10 @@ int verify_demo_registers(TX7332* pT)
         unsigned int actual_value = TX7332_ReadReg(pT, reg_address);
 
         if (actual_value != expected_value) {
+            printf("==> Mismatch at index 0x%04X: 0x%08X, 0x%08X\r\n", (uint16_t)reg_address, actual_value, expected_value);
         	bSuccess = 0;
+        }else{
+            printf("Match at index 0x%04X: 0x%08X, 0x%08X\r\n", (uint16_t)reg_address, actual_value, expected_value);
         }
 	}
 	return bSuccess;
@@ -96,18 +100,19 @@ void write_block_registers(TX7332* pT, uint8_t* data, uint16_t data_len)
                 unsigned int expected_value = (unsigned int)temp_values[i][1];
         		TX7332_WriteReg(pT, reg_address, expected_value);
             } else {
-                // printf("Mismatch at index %d: %08X, %08X\n", i, temp_values[i][0], temp_values[i][1]);
+                printf("Mismatch at index %d: %08X, %08X\r\n", i, temp_values[i][0], temp_values[i][1]);
             	eFlag = 1;
             }
         } else {
-            // printf("Data received contains more values than reg_values.\n");
+            printf("Data received contains more values than reg_values.\r\n");
         	eFlag = 1;
             break;
         }
     }
 
     if(eFlag == 1){
-    	  HAL_GPIO_WritePin(nHB_LED_GPIO_Port, nHB_LED_Pin, GPIO_PIN_SET);
+        printf("Error flag set.\r\n");
+    	HAL_GPIO_WritePin(nHB_LED_GPIO_Port, nHB_LED_Pin, GPIO_PIN_SET);
     }
 }
 

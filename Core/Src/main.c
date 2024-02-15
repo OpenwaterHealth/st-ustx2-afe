@@ -147,7 +147,7 @@ int main(void)
   printf("\033c");
 
   init_dma_logging();
-  printf("Openwater USTX2 AFE Development v1.0\r\n\r\n");
+  printf("Openwater USTX2 AFE Development v1.01\r\n\r\n");
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
@@ -165,9 +165,9 @@ int main(void)
   HAL_Delay(25);
 
   HAL_GPIO_WritePin(CW_EN_GPIO_Port, CW_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_SET);
 
   printf("Initializing Command QUEUE\r\n");
   // Initialize the command queue
@@ -209,9 +209,6 @@ int main(void)
   HAL_Delay(100);
   I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
 
-  printf("Running Demo TX7332 Register Set\r\n");
-  write_demo_registers(&tx[0]);
-
 #ifdef RUN_TESTS
 
   for(uint16_t x = 0; x < 86; x++){
@@ -248,6 +245,13 @@ int main(void)
 			case CMD_TOGGLE_LED:
 				printf("Toggling LED\r\n");
 				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
+				break;
+			case CMD_TX_DEMO:
+				printf("Writing Demo TX7332 Register Set\r\n");
+				write_demo_registers(&tx[0]);
+			    HAL_Delay(100);
+				printf("Verifying Demo TX7332 Register Set\r\n");
+				verify_demo_registers(&tx[0]);
 				break;
 			default:
 				printf("Unknown Command: 0x%02x\r\n", dequeuedData);
