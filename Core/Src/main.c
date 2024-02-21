@@ -254,8 +254,10 @@ int main(void)
 				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
 				break;
 			case CMD_TX_DEMO:
-				printf("Writing Demo TX7332 Register Set\r\n");
+				printf("Writing Demo TX7332 [0] Register Set\r\n");
 				write_demo_registers(&tx[0]);
+				printf("Writing Demo TX7332 [1] Register Set\r\n");
+				write_demo_registers(&tx[1]);
 			    HAL_Delay(10);
 				//printf("Verifying Demo TX7332 Register Set\r\n");
 				//verify_demo_registers(&tx[0]);
