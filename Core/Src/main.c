@@ -151,23 +151,6 @@ int main(void)
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
-  printf("Initializing TX7332\r\n");
-  HAL_GPIO_WritePin(GPIOC, RESET_L_Pin|CW_EN_Pin|STDBY_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_SET);  	//TODO: Verify initial state
-
-  // configure CS for TX7332
-  TX7332_Init(&tx[0], CS_TXA_GPIO_Port, CS_TXA_Pin);
-  TX7332_Init(&tx[1], CS_TXB_GPIO_Port, CS_TXB_Pin);
-
-  // reset TX7332
-  TX7332_Reset();
-  HAL_Delay(25);
-
-  HAL_GPIO_WritePin(CW_EN_GPIO_Port, CW_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_SET);
 
   printf("Initializing Command QUEUE\r\n");
   // Initialize the command queue
@@ -209,6 +192,30 @@ int main(void)
   HAL_Delay(100);
   I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
 
+  printf("Initializing TX7332\r\n");
+  HAL_GPIO_WritePin(GPIOC, RESET_L_Pin|CW_EN_Pin|STDBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);  	//TODO: Verify initial state
+
+  // reset TX7332
+  TX7332_Reset();
+  HAL_Delay(25);
+
+  // configure CS for TX7332
+  TX7332_Init(&tx[0], CS_TXA_GPIO_Port, CS_TXA_Pin);
+  TX7332_Init(&tx[1], CS_TXB_GPIO_Port, CS_TXB_Pin);
+
+  HAL_Delay(10);
+
+  HAL_GPIO_WritePin(CW_EN_GPIO_Port, CW_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
+
+//  printf("Writing Demo Registers\r\n");
+//  write_demo_registers(&tx[0]);
+//  HAL_Delay(10);
+
 #ifdef RUN_TESTS
 
   for(uint16_t x = 0; x < 86; x++){
@@ -249,9 +256,16 @@ int main(void)
 			case CMD_TX_DEMO:
 				printf("Writing Demo TX7332 Register Set\r\n");
 				write_demo_registers(&tx[0]);
-			    HAL_Delay(100);
-				printf("Verifying Demo TX7332 Register Set\r\n");
-				verify_demo_registers(&tx[0]);
+			    HAL_Delay(10);
+				//printf("Verifying Demo TX7332 Register Set\r\n");
+				//verify_demo_registers(&tx[0]);
+				break;
+			case CMD_TX_TEST:
+				printf("Writing Test Pattern TX7332 Register Set\r\n");
+				write_test_pattern_registers(&tx[0]);
+			    HAL_Delay(10);
+				//printf("Verifying Test Pattern TX7332 Register Set\r\n");
+				//verify_test_pattern_registers(&tx[0]);
 				break;
 			default:
 				printf("Unknown Command: 0x%02x\r\n", dequeuedData);
