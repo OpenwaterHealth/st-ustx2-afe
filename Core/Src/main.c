@@ -170,11 +170,11 @@ int main(void)
 
   printf("Configuring Clock chip\r\n");
   // Calculate the number of elements in the array
-  size_t num_elements = sizeof(cdce6214_64mhz_values) / sizeof(uint32_t);
+  size_t num_elements = sizeof(blur6214_64mhz_values) / sizeof(uint32_t);
 
   // Iterate through the array and split each uint32_t value into two uint16_t values
   for (size_t i = 0; i < num_elements; i++) {
-      uint32_t value = cdce6214_64mhz_values[i];
+      uint32_t value = blur6214_64mhz_values[i];
 
       // Split the value into upper and lower words
       uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
