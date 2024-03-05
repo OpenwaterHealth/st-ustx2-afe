@@ -97,3 +97,22 @@ uint16_t util_hw_crc16(uint8_t* buf, uint32_t size)
 	return (uint16_t)uwCRCValue;
 }
 
+void get_unique_identifier(uint32_t* uid)
+{
+    uid[0] = HAL_GetUIDw0();
+    uid[1] = HAL_GetUIDw1();
+    uid[2] = HAL_GetUIDw2();
+}
+
+// FNV-1a 32-bit hash function
+uint32_t fnv1a_32(const uint8_t *data, size_t len) {
+    const uint32_t FNV_prime = 16777619;
+    uint32_t hash = 2166136261U;
+
+    for (size_t i = 0; i < len; ++i) {
+        hash ^= (uint32_t)data[i];
+        hash *= FNV_prime;
+    }
+
+    return hash;
+}

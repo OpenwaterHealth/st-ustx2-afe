@@ -60,6 +60,7 @@ extern UART_HandleTypeDef huart5;
 extern I2C_HandleTypeDef hi2c1;
 extern CommandQueue commandQueue;
 extern SPI_HandleTypeDef hspi1;
+extern CRC_HandleTypeDef   hcrc;
 
 /* USER CODE END EFP */
 
