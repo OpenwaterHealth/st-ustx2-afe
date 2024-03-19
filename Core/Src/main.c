@@ -249,7 +249,7 @@ int main(void)
         // Process command
     	switch(dequeuedData)
     	{
-			case CMD_TOGGLE_LED:
+			case CMD_AFE_TOGGLE_LED:
 				printf("Toggling LED\r\n");
 				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
 				break;

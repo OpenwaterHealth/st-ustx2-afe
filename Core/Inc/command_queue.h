@@ -12,7 +12,7 @@
 #include <stdbool.h>
 
 typedef enum {
-	CMD_TOGGLE_LED = 0x01,
+	CMD_AFE_TOGGLE_LED = 0x01,
 	CMD_TURN_OFF_LED = 0x02,
 	CMD_TURN_ON_LED = 0x03,
 	CMD_HB_LED = 0x04,
