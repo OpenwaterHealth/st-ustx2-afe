@@ -111,6 +111,7 @@ static void PrintI2CSpeed(I2C_HandleTypeDef* hi2c) {
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
