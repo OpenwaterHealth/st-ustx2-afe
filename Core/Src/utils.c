@@ -79,7 +79,16 @@ const uint16_t crc16_tab[256] = {
 	0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 };
 
-uint16_t util_crc16(uint8_t* buf, uint32_t size) {
+
+void printBuffer(const uint8_t* buffer, uint32_t size) {
+	printf("\r\nBuffer\r\n\r\n");
+    for (uint32_t i = 0; i < size; i++) {
+        printf("%02X ", buffer[i]); // Print each byte in hexadecimal format
+    }
+    printf("\r\n\r\n"); // Print a newline character to separate the output
+}
+
+uint16_t util_crc16(const uint8_t* buf, uint32_t size) {
 	uint16_t crc = 0xFFFF;
 
 	for (int i = 0; i < size; i++) {

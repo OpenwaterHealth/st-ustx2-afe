@@ -31,7 +31,6 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "command_queue.h"
 
 /* USER CODE END Includes */
 
@@ -58,7 +57,6 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 extern UART_HandleTypeDef huart5;
 extern I2C_HandleTypeDef hi2c1;
-extern CommandQueue commandQueue;
 extern SPI_HandleTypeDef hspi1;
 extern CRC_HandleTypeDef   hcrc;
 

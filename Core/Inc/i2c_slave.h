@@ -9,22 +9,22 @@
 #define INC_I2C_SLAVE_H_
 
 #include "main.h"
+#include "i2c_protocol.h"
 #include <stdio.h>
 
-enum DeviceState {
-  // initial state
-  STATE_INITIAL = 0,
-  // receiving packet
-  STATE_RECEIVING_PACKET,
-  // sending packet
-  STATE_SENDING_PACKET,
-  // packet complete
-  STATE_COMPLETED_PACKET
-};
+typedef enum {
+    STATE_IDLE,
+    STATE_SEND_DATA,
+    STATE_BUSY,
+	STATE_READ_DATA,
+    STATE_ERROR
+} I2C_Slave_State;
 
-// Function prototypes for I2C slave operations
+extern I2C_TX_Packet* data_available;
+
+void i2c_print_info();
 void I2C_Slave_Init(uint8_t addr);
-void I2C_Slave_ProcessData(uint8_t data);
-
+void I2C_Process();
+bool set_status_buffer(I2C_STATUS_Packet* status);
 
 #endif /* INC_I2C_SLAVE_H_ */

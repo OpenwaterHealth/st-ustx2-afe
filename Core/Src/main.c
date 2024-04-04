@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
+#include "common.h"
 #include "i2c_slave.h"
 #include "i2c_master.h"
 #include "afe_config.h"
@@ -30,6 +30,7 @@
 #include "logging.h"
 #include "tx7332.h"
 #include "demo.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -65,9 +66,6 @@ DMA_HandleTypeDef hdma_usart5_tx;
 
 /* USER CODE BEGIN PV */
 DeviceConfig_t myConfig;
-
-uint8_t queueBuffer[COMMAND_QUEUE_SIZE];
-CommandQueue commandQueue;
 
 TX7332 tx[2];
 
@@ -113,6 +111,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  I2C_STATUS_Packet status_packet;
 
   /* USER CODE END 1 */
 
@@ -153,10 +152,7 @@ int main(void)
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
 
-  printf("Initializing Command QUEUE\r\n");
-  // Initialize the command queue
-  CommandQueue_Init(&commandQueue, queueBuffer, COMMAND_QUEUE_SIZE);
-
+  // Initializing I2C Slave
   I2C_Slave_Init(myConfig.i2c_address);
   PrintI2CSpeed(&hi2c1);
 
@@ -240,42 +236,56 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t dequeuedData;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if (CommandQueue_Dequeue(&commandQueue, &dequeuedData)) {
+    if (data_available) {
         // Process command
-    	switch(dequeuedData)
+        status_packet.id = data_available->id;
+        status_packet.cmd = data_available->cmd;
+		status_packet.status = 0xFF;
+		status_packet.data_len = 0;
+    	switch(data_available->cmd)
     	{
-			case CMD_AFE_TOGGLE_LED:
+			case AFE_CMD_TOGGLE_LED:
 				printf("Toggling LED\r\n");
 				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
+				status_packet.status = 0x00;
+				status_packet.data_len = 0;
+				set_status_buffer(&status_packet);
 				break;
 			case CMD_TX_DEMO:
 				printf("Writing Demo TX7332 [0] Register Set\r\n");
 				write_demo_registers(&tx[0]);
 				printf("Writing Demo TX7332 [1] Register Set\r\n");
 				write_demo_registers(&tx[1]);
-			    HAL_Delay(10);
+				status_packet.status = 0x00;
+				status_packet.data_len = 0;
+				set_status_buffer(&status_packet);
+			    // HAL_Delay(10);
 				//printf("Verifying Demo TX7332 Register Set\r\n");
 				//verify_demo_registers(&tx[0]);
 				break;
 			case CMD_TX_TEST:
 				printf("Writing Test Pattern TX7332 Register Set\r\n");
 				write_test_pattern_registers(&tx[0]);
-			    HAL_Delay(10);
+				status_packet.status = 0x00;
+				status_packet.data_len = 0;
+				set_status_buffer(&status_packet);
+			    //HAL_Delay(10);
 				//printf("Verifying Test Pattern TX7332 Register Set\r\n");
 				//verify_test_pattern_registers(&tx[0]);
 				break;
 			default:
-				printf("Unknown Command: 0x%02x\r\n", dequeuedData);
+				printf("Unknown Command: 0x%02x\r\n", data_available->cmd);
 				break;
     	}
+    	data_available = NULL;
     }else{
-    	HAL_Delay(25);
+    	HAL_Delay(1);
     }
 
   }
