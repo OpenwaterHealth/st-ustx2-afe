@@ -1,7 +1,7 @@
 /*
  * i2c_slave.c
  *
- *  Created on: Jan 8, 2024
+ *  Created on: Mar 30, 2024
  *      Author: gvigelet
  */
 
@@ -21,9 +21,11 @@ uint8_t status_buffer[I2C_STATUS_SIZE];
 uint8_t tx_position = 0;  // 0 - status, 8 - data packet
 size_t tx_bytes = 0;
 static uint8_t* send_buffer = 0;
-
-
 I2C_TX_Packet* data_available;
+
+I2C_TX_Packet tx_packet;
+I2C_TX_Packet rx_packet;
+I2C_STATUS_Packet status_packet;
 
 __IO uint16_t rx_count = 0;
 __IO uint16_t tx_count = 0;
@@ -31,11 +33,6 @@ __IO int is_first_byte_received = 0;
 __IO int countAddr = 0;
 __IO int countrxCplt = 0;
 __IO int countError = 0;
-
-
-I2C_TX_Packet tx_packet;
-I2C_TX_Packet rx_packet;
-I2C_STATUS_Packet status_packet;
 
 void I2C_Slave_Init(uint8_t addr) {
 
@@ -46,6 +43,7 @@ void I2C_Slave_Init(uint8_t addr) {
 	  I2C_DEVICE.Init.OwnAddress1  = addr << 1;
   }
 
+  data_available = NULL;
   // Reinitialize the I2C peripheral with the updated configuration
   if (HAL_I2C_Init(&I2C_DEVICE) != HAL_OK) {
 	  // Handle the error if reinitialization fails
@@ -82,12 +80,14 @@ void i2c_print_info() {
 
 
 void I2C_Process() {
+
 }
 
 bool set_status_buffer(I2C_STATUS_Packet* status)
 {
 	bool ret = false;
-	if(i2c_status_packet_toBuffer(status,tx_buffer)>0)
+
+	if(i2c_status_packet_toBuffer(status,status_buffer)>0)
 	{
 		ret = true;
 	}
@@ -136,14 +136,16 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 			// read status
 			status_packet.data_len = rx_packet.pkt_len;
 			tx_bytes = i2c_status_packet_toBuffer(&status_packet, status_buffer);  // update status packet
+			printf("Read Status %d\r\n", tx_bytes);
 			send_buffer = status_buffer;
 		}else{
 			// read buffer
 			tx_bytes = i2c_packet_toBuffer(&rx_packet, tx_buffer);
+			printf("Read Data %d\r\n", tx_bytes);
 			send_buffer = tx_buffer;
 		}
 
-		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, send_buffer+tx_count, tx_bytes, I2C_FIRST_AND_LAST_FRAME);
+		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, send_buffer, tx_bytes, I2C_FIRST_AND_LAST_FRAME);
 	}
 }
 

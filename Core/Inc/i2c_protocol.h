@@ -21,7 +21,7 @@ typedef struct {
 	uint8_t pkt_len;
 	uint16_t id;
 	uint8_t cmd;
-	uint8_t status;
+	uint8_t reserved;
 	uint8_t data_len;
 	const uint8_t* pData;
 	uint16_t crc;

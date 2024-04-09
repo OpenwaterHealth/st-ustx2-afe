@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -41,6 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /* USER CODE END PD */
 
@@ -54,6 +55,8 @@ CRC_HandleTypeDef hcrc;
 
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
+DMA_HandleTypeDef hdma_i2c1_tx;
+DMA_HandleTypeDef hdma_i2c1_rx;
 
 SPI_HandleTypeDef hspi1;
 
@@ -89,17 +92,17 @@ static void MX_TIM21_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static void PrintI2CSpeed(I2C_HandleTypeDef* hi2c) {
-    uint32_t timing = hi2c->Init.Timing;
-    uint32_t pclk = HAL_RCC_GetPCLK1Freq(); // Get the peripheral clock frequency
+static void PrintI2CSpeed(I2C_HandleTypeDef *hi2c)
+{
+  uint32_t timing = hi2c->Init.Timing;
+  uint32_t pclk = HAL_RCC_GetPCLK1Freq(); // Get the peripheral clock frequency
 
-    // Calculate the I2C speed in Hz
-    uint32_t i2c_speed = pclk / ((timing & 0xFFFF) + 1);
+  // Calculate the I2C speed in Hz
+  uint32_t i2c_speed = pclk / ((timing & 0xFFFF) + 1);
 
-    printf("I2C Speed: %ld kHz\r\n", i2c_speed / 10); // Print the I2C speed in kHz
-    printf("I2C Slave Addr: 0x%02x\r\n\r\n", (uint8_t)(hi2c->Init.OwnAddress1 >> 1));
+  printf("I2C Speed: %ld kHz\r\n", i2c_speed / 10); // Print the I2C speed in kHz
+  printf("I2C Slave Addr: 0x%02x\r\n\r\n", (uint8_t)(hi2c->Init.OwnAddress1 >> 1));
 }
-
 
 /* USER CODE END 0 */
 
@@ -111,7 +114,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  I2C_STATUS_Packet status_packet;
 
   /* USER CODE END 1 */
 
@@ -147,12 +149,12 @@ int main(void)
   printf("\033c");
 
   init_dma_logging();
-  printf("Openwater USTX2 AFE Development v1.01\r\n\r\n");
+  printf("Openwater USTX2 AFE Development v1.0.3\r\n\r\n");
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
-
   // Initializing I2C Slave
+  data_available = NULL;
   I2C_Slave_Init(myConfig.i2c_address);
   PrintI2CSpeed(&hi2c1);
 
@@ -170,18 +172,20 @@ int main(void)
   size_t num_elements = sizeof(blur6214_64mhz_values) / sizeof(uint32_t);
 
   // Iterate through the array and split each uint32_t value into two uint16_t values
-  for (size_t i = 0; i < num_elements; i++) {
-      uint32_t value = blur6214_64mhz_values[i];
+  for (size_t i = 0; i < num_elements; i++)
+  {
+    uint32_t value = blur6214_64mhz_values[i];
 
-      // Split the value into upper and lower words
-      uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
-      uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
+    // Split the value into upper and lower words
+    uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
+    uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
 
-      // Print the split values
-	  if(!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value)){
-		  printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
-	  }
-	  HAL_Delay(1);
+    // Print the split values
+    if (!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value))
+    {
+      printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
+    }
+    HAL_Delay(1);
   }
 
   HAL_Delay(100);
@@ -190,9 +194,9 @@ int main(void)
   I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
 
   printf("Initializing TX7332\r\n");
-  HAL_GPIO_WritePin(GPIOC, RESET_L_Pin|CW_EN_Pin|STDBY_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);  	//TODO: Verify initial state
+  HAL_GPIO_WritePin(GPIOC, RESET_L_Pin | CW_EN_Pin | STDBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin | DSEL1_Pin | TR_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin | CS_TXB_Pin, GPIO_PIN_RESET); // TODO: Verify initial state
 
   // reset TX7332
   TX7332_Reset();
@@ -209,26 +213,28 @@ int main(void)
   HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
 
-//  printf("Writing Demo Registers\r\n");
-//  write_demo_registers(&tx[0]);
-//  HAL_Delay(10);
+  //  printf("Writing Demo Registers\r\n");
+  //  write_demo_registers(&tx[0]);
+  //  HAL_Delay(10);
 
 #ifdef RUN_TESTS
 
-  for(uint16_t x = 0; x < 86; x++){
-	  printf("Read R%d: ", x);
-	  uint16_t reg_val = I2C_read_CDCE6214_reg(0x67, x);
-	  printf("0x%04x\r\n", reg_val);
+  for (uint16_t x = 0; x < 86; x++)
+  {
+    printf("Read R%d: ", x);
+    uint16_t reg_val = I2C_read_CDCE6214_reg(0x67, x);
+    printf("0x%04x\r\n", reg_val);
   }
 
   HAL_Delay(25);
 
-  if(crc_test()==1){
-	  printf("CRC Test Failed\r\n\r\n");
+  if (crc_test() == 1)
+  {
+    printf("CRC Test Failed\r\n\r\n");
   }
   else
   {
-	  printf("CRC Test Passed\r\n\r\n");
+    printf("CRC Test Passed\r\n\r\n");
   }
 #endif
 
@@ -242,52 +248,83 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if (data_available) {
-        // Process command
-        status_packet.id = data_available->id;
-        status_packet.cmd = data_available->cmd;
-		status_packet.status = 0xFF;
-		status_packet.data_len = 0;
-    	switch(data_available->cmd)
-    	{
-			case AFE_CMD_TOGGLE_LED:
-				printf("Toggling LED\r\n");
-				HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
-				status_packet.status = 0x00;
-				status_packet.data_len = 0;
+    if (data_available)
+    {
+      // Process command
+      status_packet.id = data_available->id;
+      status_packet.cmd = data_available->cmd;
+      status_packet.status = 0xFF;
+      status_packet.data_len = 0;
+      // print received packet
+      i2c_tx_packet_print(data_available);
+      switch (data_available->cmd)
+      {
+      case OW_CMD_PING:
+        printf("AFE Ping\r\n");
+        status_packet.cmd = OW_CMD_PONG;
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
 				set_status_buffer(&status_packet);
-				break;
-			case CMD_TX_DEMO:
-				printf("Writing Demo TX7332 [0] Register Set\r\n");
-				write_demo_registers(&tx[0]);
-				printf("Writing Demo TX7332 [1] Register Set\r\n");
-				write_demo_registers(&tx[1]);
-				status_packet.status = 0x00;
-				status_packet.data_len = 0;
+        break;
+      case OW_CMD_PONG:
+        printf("AFE Pong\r\n");
+        status_packet.cmd = OW_CMD_PING;
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
 				set_status_buffer(&status_packet);
-			    // HAL_Delay(10);
-				//printf("Verifying Demo TX7332 Register Set\r\n");
-				//verify_demo_registers(&tx[0]);
-				break;
-			case CMD_TX_TEST:
-				printf("Writing Test Pattern TX7332 Register Set\r\n");
-				write_test_pattern_registers(&tx[0]);
-				status_packet.status = 0x00;
-				status_packet.data_len = 0;
+        break;
+      case OW_CMD_TOGGLE_LED:
+        printf("Toggling LED\r\n");
+        HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
 				set_status_buffer(&status_packet);
-			    //HAL_Delay(10);
-				//printf("Verifying Test Pattern TX7332 Register Set\r\n");
-				//verify_test_pattern_registers(&tx[0]);
-				break;
-			default:
-				printf("Unknown Command: 0x%02x\r\n", data_available->cmd);
-				break;
-    	}
-    	data_available = NULL;
-    }else{
-    	HAL_Delay(1);
+        break;
+      case OW_AFE_ENUM_TX7332:
+        printf("Enumerate TX7332 ICs\r\n");
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        status_packet.reserved = ARRAY_SIZE(tx);
+				set_status_buffer(&status_packet);
+        break;
+      case OW_TX7332_DEMO:
+        printf("Writing Demo TX7332 [0] Register Set\r\n");
+        write_demo_registers(&tx[0]);
+        printf("Writing Demo TX7332 [1] Register Set\r\n");
+        write_demo_registers(&tx[1]);
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        // HAL_Delay(10);
+        // printf("Verifying Demo TX7332 Register Set\r\n");
+        // verify_demo_registers(&tx[0]);
+        break;
+      case OW_TX7332_WREG:
+        printf("Write REG\r\n");
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        break;
+      case OW_TX7332_RREG:
+        printf("Write REG\r\n");
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        break;
+      case OW_TX7332_TEST:
+        printf("Writing Test Pattern TX7332 Register Set\r\n");
+        write_test_pattern_registers(&tx[0]);
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        // HAL_Delay(10);
+        // printf("Verifying Test Pattern TX7332 Register Set\r\n");
+        // verify_test_pattern_registers(&tx[0]);
+        break;
+      default:
+        printf("Unknown Command: 0x%02x\r\n", data_available->cmd);
+        break;
+      }
+      data_available = NULL;
     }
 
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
@@ -393,13 +430,13 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x00707CBB;
-  hi2c1.Init.OwnAddress1 = 104;
+  hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
   hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
@@ -652,6 +689,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel2_3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+  /* DMA1_Channel4_5_6_7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_5_6_7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_5_6_7_IRQn);
 
 }
 

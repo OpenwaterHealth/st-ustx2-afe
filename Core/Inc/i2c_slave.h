@@ -12,6 +12,9 @@
 #include "i2c_protocol.h"
 #include <stdio.h>
 
+extern I2C_STATUS_Packet status_packet;
+extern I2C_TX_Packet* data_available;
+
 typedef enum {
     STATE_IDLE,
     STATE_SEND_DATA,
@@ -19,8 +22,6 @@ typedef enum {
 	STATE_READ_DATA,
     STATE_ERROR
 } I2C_Slave_State;
-
-extern I2C_TX_Packet* data_available;
 
 void i2c_print_info();
 void I2C_Slave_Init(uint8_t addr);
