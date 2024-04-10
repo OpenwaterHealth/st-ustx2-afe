@@ -45,4 +45,5 @@ size_t i2c_packet_toBuffer(I2C_TX_Packet* pTX, uint8_t* buffer);
 bool i2c_status_packet_fromBuffer(const uint8_t* buffer, I2C_STATUS_Packet* pTX);
 size_t i2c_status_packet_toBuffer(I2C_STATUS_Packet* pTX, uint8_t* buffer);
 
+
 #endif /* INC_I2C_PROTOCOL_H_ */

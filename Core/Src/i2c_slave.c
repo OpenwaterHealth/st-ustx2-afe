@@ -6,6 +6,7 @@
  */
 
 #include "main.h"
+#include "common.h"
 #include "i2c_protocol.h"
 #include "i2c_slave.h"
 #include "utils.h"
@@ -83,15 +84,31 @@ void I2C_Process() {
 
 }
 
-bool set_status_buffer(I2C_STATUS_Packet* status)
+bool set_transmit_buffer(I2C_TX_Packet* packet, uint16_t packet_id, uint8_t command, uint8_t status_code)
 {
 	bool ret = false;
 
-	if(i2c_status_packet_toBuffer(status,status_buffer)>0)
+	memset(&status_packet, 0, 8);
+	status_packet.cmd = command;
+	status_packet.status = status_code;
+	status_packet.reserved = 0;
+	status_packet.data_len = 0;
+	status_packet.id = packet_id;
+	if(packet)
 	{
-		ret = true;
-	}
+		if(i2c_packet_toBuffer(packet, tx_buffer)>0)
+		{
+			// update tx_packet from this buffer
+			ret = i2c_packet_fromBuffer(tx_buffer, &tx_packet);
 
+		}
+	}else{
+		memset(tx_buffer, 0, I2C_BUFFER_SIZE);
+		ret = i2c_packet_fromBuffer(tx_buffer, &tx_packet);
+	}
+	if(!ret){
+		status_packet.status = OW_CODE_DATA_ERROR;
+	}
 	return ret;
 }
 
@@ -134,13 +151,13 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 		if(tx_position == 0)
 		{
 			// read status
-			status_packet.data_len = rx_packet.pkt_len;
+			status_packet.data_len = tx_packet.pkt_len;
 			tx_bytes = i2c_status_packet_toBuffer(&status_packet, status_buffer);  // update status packet
 			printf("Read Status %d\r\n", tx_bytes);
 			send_buffer = status_buffer;
 		}else{
 			// read buffer
-			tx_bytes = i2c_packet_toBuffer(&rx_packet, tx_buffer);
+			tx_bytes = tx_packet.pkt_len;
 			printf("Read Data %d\r\n", tx_bytes);
 			send_buffer = tx_buffer;
 		}

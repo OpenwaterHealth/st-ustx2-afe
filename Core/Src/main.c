@@ -72,6 +72,8 @@ DeviceConfig_t myConfig;
 
 TX7332 tx[2];
 
+static uint8_t FIRMWARE_VERSION_DATA[3] = {1, 0, 0};
+static uint32_t id_words[3] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,13 +109,15 @@ static void PrintI2CSpeed(I2C_HandleTypeDef *hi2c)
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  I2C_TX_Packet ret_data;
+  uint8_t ret_data_buffer[I2C_BUFFER_SIZE] = {0};
 
   /* USER CODE END 1 */
 
@@ -248,6 +252,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    memset(ret_data_buffer, 0, I2C_BUFFER_SIZE);
+    memset((uint8_t *)&ret_data, 0, sizeof(ret_data));
     if (data_available)
     {
       // Process command
@@ -264,28 +270,81 @@ int main(void)
         status_packet.cmd = OW_CMD_PONG;
         status_packet.status = 0x00;
         status_packet.data_len = 0;
-				set_status_buffer(&status_packet);
         break;
       case OW_CMD_PONG:
         printf("AFE Pong\r\n");
         status_packet.cmd = OW_CMD_PING;
         status_packet.status = 0x00;
         status_packet.data_len = 0;
-				set_status_buffer(&status_packet);
         break;
       case OW_CMD_TOGGLE_LED:
         printf("Toggling LED\r\n");
         HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
         status_packet.status = 0x00;
         status_packet.data_len = 0;
-				set_status_buffer(&status_packet);
+        break;
+      case OW_CMD_ECHO:
+        printf("AFE Echo\r\n");
+        status_packet.status = 0x00;
+        ret_data.cmd = data_available->cmd;
+        ret_data.id = data_available->id;
+        ret_data.reserved = 0;
+        if (data_available->data_len > 0)
+        {
+          ret_data.data_len = data_available->data_len;
+          ret_data.pData = data_available->pData;
+        }
+        else
+        {
+          ret_data.data_len = 0;
+          ret_data.pData = NULL;
+          status_packet.data_len = 0;
+        }
+        set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
+
+        break;
+      case OW_CMD_VERSION:
+        printf("AFE Version\r\n");
+        status_packet.status = 0x00;
+        ret_data.cmd = data_available->cmd;
+        ret_data.id = data_available->id;
+        ret_data.reserved = 0;
+        ret_data.data_len = sizeof(FIRMWARE_VERSION_DATA);
+        ret_data.pData = FIRMWARE_VERSION_DATA;
+        set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
+        break;
+      case OW_CMD_HWID:
+        printf("AFE CHIP ID\r\n");
+        status_packet.status = 0x00;
+        ret_data.cmd = data_available->cmd;
+        ret_data.id = data_available->id;
+        id_words[0] = HAL_GetUIDw0();
+        id_words[1] = HAL_GetUIDw1();
+        id_words[2] = HAL_GetUIDw2();
+
+        // Print the contents of id_words array in hexadecimal format
+        printf("id_words[0]: 0x%lx\r\n", id_words[0]);
+        printf("id_words[1]: 0x%lx\r\n", id_words[1]);
+        printf("id_words[2]: 0x%lx\r\n", id_words[2]);
+
+        ret_data.data_len = sizeof(id_words);
+        ret_data.pData = (uint8_t *)id_words;
+        set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
+        break;
+      case OW_CMD_RESET:
+        printf("AFE RESET\r\n");
+        status_packet.cmd = OW_CMD_RESET;
+        status_packet.status = 0x00;
+        status_packet.data_len = 0;
+        HAL_Delay(1);
+        // Reset the board
+        NVIC_SystemReset();
         break;
       case OW_AFE_ENUM_TX7332:
         printf("Enumerate TX7332 ICs\r\n");
         status_packet.status = 0x00;
         status_packet.data_len = 0;
         status_packet.reserved = ARRAY_SIZE(tx);
-				set_status_buffer(&status_packet);
         break;
       case OW_TX7332_DEMO:
         printf("Writing Demo TX7332 [0] Register Set\r\n");
@@ -330,9 +389,9 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -340,12 +399,12 @@ void SystemClock_Config(void)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -359,9 +418,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -380,10 +438,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief CRC Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_CRC_Init(void)
 {
 
@@ -410,14 +468,13 @@ static void MX_CRC_Init(void)
   /* USER CODE BEGIN CRC_Init 2 */
 
   /* USER CODE END CRC_Init 2 */
-
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_I2C1_Init(void)
 {
 
@@ -443,14 +500,14 @@ static void MX_I2C1_Init(void)
   }
 
   /** Configure Analogue filter
-  */
+   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
-  */
+   */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
     Error_Handler();
@@ -458,14 +515,13 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
-
 }
 
 /**
-  * @brief I2C2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief I2C2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_I2C2_Init(void)
 {
 
@@ -491,14 +547,14 @@ static void MX_I2C2_Init(void)
   }
 
   /** Configure Analogue filter
-  */
+   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
-  */
+   */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
   {
     Error_Handler();
@@ -506,14 +562,13 @@ static void MX_I2C2_Init(void)
   /* USER CODE BEGIN I2C2_Init 2 */
 
   /* USER CODE END I2C2_Init 2 */
-
 }
 
 /**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI1_Init(void)
 {
 
@@ -544,14 +599,13 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM3_Init(void)
 {
 
@@ -593,14 +647,13 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
-
 }
 
 /**
-  * @brief TIM21 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM21 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM21_Init(void)
 {
 
@@ -638,14 +691,13 @@ static void MX_TIM21_Init(void)
   /* USER CODE BEGIN TIM21_Init 2 */
 
   /* USER CODE END TIM21_Init 2 */
-
 }
 
 /**
-  * @brief USART5 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USART5 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USART5_UART_Init(void)
 {
 
@@ -673,12 +725,11 @@ static void MX_USART5_UART_Init(void)
   /* USER CODE BEGIN USART5_Init 2 */
 
   /* USER CODE END USART5_Init 2 */
-
 }
 
 /**
-  * Enable DMA controller clock
-  */
+ * Enable DMA controller clock
+ */
 static void MX_DMA_Init(void)
 {
 
@@ -692,19 +743,18 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel4_5_6_7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_5_6_7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_5_6_7_IRQn);
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -713,34 +763,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin|DSEL1_Pin|TR_EN_Pin|CW_EN_Pin
-                          |STDBY_Pin|RESET_L_Pin|CS_TXA_Pin|CS_TXB_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DSEL0_Pin | DSEL1_Pin | TR_EN_Pin | CW_EN_Pin | STDBY_Pin | RESET_L_Pin | CS_TXA_Pin | CS_TXB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, nHB_LED_Pin|READY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, nHB_LED_Pin | READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PC13 PC14 PC15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PH0 PH1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /*Configure GPIO pins : nINTERRUPT_Pin PA3 nESTOP_Pin */
-  GPIO_InitStruct.Pin = nINTERRUPT_Pin|GPIO_PIN_3|nESTOP_Pin;
+  GPIO_InitStruct.Pin = nINTERRUPT_Pin | GPIO_PIN_3 | nESTOP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DSEL0_Pin DSEL1_Pin TR_EN_Pin CW_EN_Pin
                            STDBY_Pin RESET_L_Pin CS_TXA_Pin CS_TXB_Pin */
-  GPIO_InitStruct.Pin = DSEL0_Pin|DSEL1_Pin|TR_EN_Pin|CW_EN_Pin
-                          |STDBY_Pin|RESET_L_Pin|CS_TXA_Pin|CS_TXB_Pin;
+  GPIO_InitStruct.Pin = DSEL0_Pin | DSEL1_Pin | TR_EN_Pin | CW_EN_Pin | STDBY_Pin | RESET_L_Pin | CS_TXA_Pin | CS_TXB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -754,14 +802,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PB2 PB10 PB11 PB15
                            PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_15
-                          |GPIO_PIN_8|GPIO_PIN_9;
+  GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_15 | GPIO_PIN_8 | GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : nHB_LED_Pin READY_Pin */
-  GPIO_InitStruct.Pin = nHB_LED_Pin|READY_Pin;
+  GPIO_InitStruct.Pin = nHB_LED_Pin | READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -775,8 +822,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF4_TIM22;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -784,19 +831,20 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM2 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM2 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM2) {
+  if (htim->Instance == TIM2)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
@@ -805,9 +853,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -819,14 +867,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */

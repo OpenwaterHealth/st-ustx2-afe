@@ -28,6 +28,12 @@ typedef enum {
 } UartPacketTypes;
 
 typedef enum {
+	OW_CODE_SUCCESS = 0x00,
+	OW_CODE_DATA_ERROR = 0xFE,
+	OW_CODE_ERROR = 0xEF,
+} UstxErrorCodes;
+
+typedef enum {
 	OW_CMD_PING = 0x00,
 	OW_CMD_PONG = 0x01,
 	OW_CMD_VERSION = 0x02,
