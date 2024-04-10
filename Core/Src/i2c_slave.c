@@ -26,7 +26,8 @@ I2C_TX_Packet* data_available;
 
 I2C_TX_Packet tx_packet;
 I2C_TX_Packet rx_packet;
-I2C_STATUS_Packet status_packet;
+I2C_STATUS_Packet _status_packet;
+I2C_STATUS_Packet* status_packet = &_status_packet;
 
 __IO uint16_t rx_count = 0;
 __IO uint16_t tx_count = 0;
@@ -53,13 +54,14 @@ void I2C_Slave_Init(uint8_t addr) {
 
   // clear header
   memset(tx_buffer, 0, I2C_BUFFER_SIZE);
+  memset(status_buffer, 0, I2C_STATUS_SIZE);
 
 
-  status_packet.id = 00;
-  status_packet.status = 0x00; // processing
-  status_packet.cmd = 0x00;
-  status_packet.data_len = 0;
-  i2c_status_packet_toBuffer(&status_packet, status_buffer);
+  _status_packet.id = 00;
+  _status_packet.status = 0x00; // processing
+  _status_packet.cmd = 0x00;
+  _status_packet.reserved = 0;
+  _status_packet.data_len = 0;
 
   if(HAL_I2C_EnableListen_IT(&I2C_DEVICE) != HAL_OK) {
 	  // Handle the error if reinitialization fails
@@ -88,12 +90,10 @@ bool set_transmit_buffer(I2C_TX_Packet* packet, uint16_t packet_id, uint8_t comm
 {
 	bool ret = false;
 
-	memset(&status_packet, 0, 8);
-	status_packet.cmd = command;
-	status_packet.status = status_code;
-	status_packet.reserved = 0;
-	status_packet.data_len = 0;
-	status_packet.id = packet_id;
+	_status_packet.cmd = command;
+	_status_packet.status = status_code;
+	_status_packet.data_len = 0;
+	_status_packet.id = packet_id;
 	if(packet)
 	{
 		if(i2c_packet_toBuffer(packet, tx_buffer)>0)
@@ -107,7 +107,7 @@ bool set_transmit_buffer(I2C_TX_Packet* packet, uint16_t packet_id, uint8_t comm
 		ret = i2c_packet_fromBuffer(tx_buffer, &tx_packet);
 	}
 	if(!ret){
-		status_packet.status = OW_CODE_DATA_ERROR;
+		_status_packet.status = OW_CODE_DATA_ERROR;
 	}
 	return ret;
 }
@@ -151,9 +151,9 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 		if(tx_position == 0)
 		{
 			// read status
-			status_packet.data_len = tx_packet.pkt_len;
-			tx_bytes = i2c_status_packet_toBuffer(&status_packet, status_buffer);  // update status packet
-			printf("Read Status %d\r\n", tx_bytes);
+			_status_packet.data_len = tx_packet.pkt_len;
+			tx_bytes = i2c_status_packet_toBuffer(status_packet, status_buffer);  // update status packet
+			i2c_status_packet_print(status_packet);
 			send_buffer = status_buffer;
 		}else{
 			// read buffer
@@ -213,9 +213,9 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 			is_first_byte_received=0;
 			// process data
 			i2c_packet_fromBuffer(rx_buffer, &rx_packet);
-			status_packet.id = rx_packet.id;
-			status_packet.cmd = rx_packet.cmd;
-			status_packet.status = 0xA5;
+			_status_packet.id = rx_packet.id;
+			_status_packet.cmd = rx_packet.cmd;
+			_status_packet.status = 0x00;
 			// printBuffer(rx_buffer, rx_count);
 			// process or send for processing
 			data_available = &rx_packet;

@@ -257,35 +257,36 @@ int main(void)
     if (data_available)
     {
       // Process command
-      status_packet.id = data_available->id;
-      status_packet.cmd = data_available->cmd;
-      status_packet.status = 0xFF;
-      status_packet.data_len = 0;
+      status_packet->id = data_available->id;
+      status_packet->cmd = data_available->cmd;
+      status_packet->status = 0xFF;
+      status_packet->data_len = 0;
+      
       // print received packet
       i2c_tx_packet_print(data_available);
       switch (data_available->cmd)
       {
       case OW_CMD_PING:
         printf("AFE Ping\r\n");
-        status_packet.cmd = OW_CMD_PONG;
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->cmd = OW_CMD_PONG;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       case OW_CMD_PONG:
         printf("AFE Pong\r\n");
-        status_packet.cmd = OW_CMD_PING;
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->cmd = OW_CMD_PING;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       case OW_CMD_TOGGLE_LED:
         printf("Toggling LED\r\n");
         HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       case OW_CMD_ECHO:
         printf("AFE Echo\r\n");
-        status_packet.status = 0x00;
+        status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
         ret_data.reserved = 0;
@@ -298,14 +299,14 @@ int main(void)
         {
           ret_data.data_len = 0;
           ret_data.pData = NULL;
-          status_packet.data_len = 0;
+          status_packet->data_len = 0;
         }
         set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
 
         break;
       case OW_CMD_VERSION:
         printf("AFE Version\r\n");
-        status_packet.status = 0x00;
+        status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
         ret_data.reserved = 0;
@@ -315,7 +316,7 @@ int main(void)
         break;
       case OW_CMD_HWID:
         printf("AFE CHIP ID\r\n");
-        status_packet.status = 0x00;
+        status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
         id_words[0] = HAL_GetUIDw0();
@@ -333,45 +334,46 @@ int main(void)
         break;
       case OW_CMD_RESET:
         printf("AFE RESET\r\n");
-        status_packet.cmd = OW_CMD_RESET;
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->cmd = OW_CMD_RESET;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         HAL_Delay(1);
         // Reset the board
         NVIC_SystemReset();
         break;
       case OW_AFE_ENUM_TX7332:
-        printf("Enumerate TX7332 ICs\r\n");
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
-        status_packet.reserved = ARRAY_SIZE(tx);
+        printf("Enumerate TX7332 ICs %d \r\n", ARRAY_SIZE(tx));
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
+        status_packet->reserved = (uint8_t)ARRAY_SIZE(tx);
+        set_transmit_buffer(NULL, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
         break;
       case OW_TX7332_DEMO:
         printf("Writing Demo TX7332 [0] Register Set\r\n");
         write_demo_registers(&tx[0]);
         printf("Writing Demo TX7332 [1] Register Set\r\n");
         write_demo_registers(&tx[1]);
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         // HAL_Delay(10);
         // printf("Verifying Demo TX7332 Register Set\r\n");
         // verify_demo_registers(&tx[0]);
         break;
       case OW_TX7332_WREG:
         printf("Write REG\r\n");
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       case OW_TX7332_RREG:
         printf("Write REG\r\n");
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       case OW_TX7332_TEST:
         printf("Writing Test Pattern TX7332 Register Set\r\n");
         write_test_pattern_registers(&tx[0]);
-        status_packet.status = 0x00;
-        status_packet.data_len = 0;
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         // HAL_Delay(10);
         // printf("Verifying Test Pattern TX7332 Register Set\r\n");
         // verify_test_pattern_registers(&tx[0]);
