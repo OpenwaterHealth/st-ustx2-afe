@@ -369,14 +369,6 @@ int main(void)
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
-      case OW_TX7332_TEST:
-        printf("Writing Test Pattern TX7332 Register Set\r\n");
-        write_test_pattern_registers(&tx[0]);
-        status_packet->status = 0x00;
-        status_packet->data_len = 0;
-        // HAL_Delay(10);
-        // printf("Verifying Test Pattern TX7332 Register Set\r\n");
-        // verify_test_pattern_registers(&tx[0]);
         break;
       default:
         printf("Unknown Command: 0x%02x\r\n", data_available->cmd);

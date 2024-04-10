@@ -61,7 +61,6 @@ typedef enum {
 	OW_TX7332_WREG = 0x22,
 	OW_TX7332_RREG = 0x23,
 	OW_TX7332_DEMO = 0x2D,
-	OW_TX7332_TEST = 0x2E,
 	OW_TX7332_RESET = 0x2F,
 } UstxTX7332Commands;
 
