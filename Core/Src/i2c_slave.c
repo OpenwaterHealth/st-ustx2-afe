@@ -153,12 +153,12 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 			// read status
 			_status_packet.data_len = tx_packet.pkt_len;
 			tx_bytes = i2c_status_packet_toBuffer(status_packet, status_buffer);  // update status packet
-			i2c_status_packet_print(status_packet);
+			//i2c_status_packet_print(status_packet);
 			send_buffer = status_buffer;
 		}else{
 			// read buffer
 			tx_bytes = tx_packet.pkt_len;
-			printf("Read Data %d\r\n", tx_bytes);
+			// printf("Read Data %d\r\n", tx_bytes);
 			send_buffer = tx_buffer;
 		}
 

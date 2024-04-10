@@ -263,29 +263,29 @@ int main(void)
       status_packet->data_len = 0;
       
       // print received packet
-      i2c_tx_packet_print(data_available);
+      // i2c_tx_packet_print(data_available);
       switch (data_available->cmd)
       {
       case OW_CMD_PING:
-        printf("AFE Ping\r\n");
+        // printf("AFE Ping\r\n");
         status_packet->cmd = OW_CMD_PONG;
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
       case OW_CMD_PONG:
-        printf("AFE Pong\r\n");
+    	  // printf("AFE Pong\r\n");
         status_packet->cmd = OW_CMD_PING;
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
       case OW_CMD_TOGGLE_LED:
-        printf("Toggling LED\r\n");
+    	  // printf("Toggling LED\r\n");
         HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
       case OW_CMD_ECHO:
-        printf("AFE Echo\r\n");
+    	  // printf("AFE Echo\r\n");
         status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
@@ -305,7 +305,7 @@ int main(void)
 
         break;
       case OW_CMD_VERSION:
-        printf("AFE Version\r\n");
+    	  // printf("AFE Version\r\n");
         status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
@@ -315,7 +315,7 @@ int main(void)
         set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
         break;
       case OW_CMD_HWID:
-        printf("AFE CHIP ID\r\n");
+    	  // printf("AFE CHIP ID\r\n");
         status_packet->status = 0x00;
         ret_data.cmd = data_available->cmd;
         ret_data.id = data_available->id;
@@ -324,16 +324,16 @@ int main(void)
         id_words[2] = HAL_GetUIDw2();
 
         // Print the contents of id_words array in hexadecimal format
-        printf("id_words[0]: 0x%lx\r\n", id_words[0]);
-        printf("id_words[1]: 0x%lx\r\n", id_words[1]);
-        printf("id_words[2]: 0x%lx\r\n", id_words[2]);
+        // printf("id_words[0]: 0x%lx\r\n", id_words[0]);
+        // printf("id_words[1]: 0x%lx\r\n", id_words[1]);
+        // printf("id_words[2]: 0x%lx\r\n", id_words[2]);
 
         ret_data.data_len = sizeof(id_words);
         ret_data.pData = (uint8_t *)id_words;
         set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
         break;
       case OW_CMD_RESET:
-        printf("AFE RESET\r\n");
+    	  // printf("AFE RESET\r\n");
         status_packet->cmd = OW_CMD_RESET;
         status_packet->status = 0x00;
         status_packet->data_len = 0;
@@ -342,16 +342,16 @@ int main(void)
         NVIC_SystemReset();
         break;
       case OW_AFE_ENUM_TX7332:
-        printf("Enumerate TX7332 ICs %d \r\n", ARRAY_SIZE(tx));
+    	  // printf("Enumerate TX7332 ICs %d \r\n", ARRAY_SIZE(tx));
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         status_packet->reserved = (uint8_t)ARRAY_SIZE(tx);
         set_transmit_buffer(NULL, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
         break;
       case OW_TX7332_DEMO:
-        printf("Writing Demo TX7332 [0] Register Set\r\n");
+    	// printf("Writing Demo TX7332 [0] Register Set\r\n");
         write_demo_registers(&tx[0]);
-        printf("Writing Demo TX7332 [1] Register Set\r\n");
+        // printf("Writing Demo TX7332 [1] Register Set\r\n");
         write_demo_registers(&tx[1]);
         status_packet->status = 0x00;
         status_packet->data_len = 0;
@@ -365,10 +365,19 @@ int main(void)
         status_packet->data_len = 0;
         break;
       case OW_TX7332_RREG:
-        printf("Write REG\r\n");
+        printf("Read REG\r\n");
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
+      case OW_TX7332_WBLOCK:
+        printf("Write Block\r\n");
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
+        break;
+      case OW_TX7332_RBLOCK:
+        printf("Read Block\r\n");
+        status_packet->status = 0x00;
+        status_packet->data_len = 0;
         break;
       default:
         printf("Unknown Command: 0x%02x\r\n", data_available->cmd);

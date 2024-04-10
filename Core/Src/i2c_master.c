@@ -28,15 +28,15 @@ void I2C_scan(void)
         if (status == HAL_OK) {
             found_addresses[found_address_count] = address;
             found_address_count++;
-        	printf("%2x ", address);
+        	// printf("%2x ", address);
         }else{
-        	printf("-- ");
+        	// printf("-- ");
         }
-        if (address > 0 && (address + 1) % 16 == 0) printf("\r\n");
+        // if (address > 0 && (address + 1) % 16 == 0) printf("\r\n");
     }
 
-    printf("\r\n\r\n");
-    fflush(stdout);
+    // printf("\r\n\r\n");
+    // fflush(stdout);
 
 }
 
