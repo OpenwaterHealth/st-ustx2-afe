@@ -191,7 +191,7 @@ int main(void)
   printf("\033c");
 
   init_dma_logging();
-  printf("Openwater USTX2 AFE Development v1.0.3\r\n\r\n");
+  printf("Openwater USTX2 AFE Development v1.0.4\r\n\r\n");
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
@@ -202,12 +202,16 @@ int main(void)
 
   printf("Scanning Local I2C bus\r\n");
   I2C_scan();
+  HAL_Delay(5);
+  printf("Configuring Clocks\r\n");
   ConfigureClock();
 
   printf("Initializing TX7332\r\n");
   HAL_GPIO_WritePin(GPIOC, RESET_L_Pin | CW_EN_Pin | STDBY_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOA, DSEL0_Pin | DSEL1_Pin | TR_EN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOA, CS_TXA_Pin | CS_TXB_Pin, GPIO_PIN_RESET); // TODO: Verify initial state
+
+  HAL_Delay(5);
 
   // reset TX7332
   TX7332_Reset();
@@ -223,11 +227,17 @@ int main(void)
   HAL_GPIO_WritePin(TR_EN_GPIO_Port, TR_EN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(DSEL0_GPIO_Port, DSEL0_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(DSEL1_GPIO_Port, DSEL1_Pin, GPIO_PIN_RESET);
+  HAL_Delay(100);
 
-  //  printf("Writing Demo Registers\r\n");
-  //  write_demo_registers(&tx[0]);
-  //  HAL_Delay(10);
+  printf("Writing Demo TX7332 [0] Register Set\r\n");
+  write_demo_registers(&tx[0]);
+  HAL_Delay(500);
 
+  printf("Writing Demo TX7332 [1] Register Set\r\n");
+  write_demo_registers(&tx[1]);
+  HAL_Delay(500);
+
+  printf("Waiting for trigger pulse\r\n");
 #ifdef RUN_TESTS
 
   for (uint16_t x = 0; x < 86; x++)
@@ -259,6 +269,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	HAL_GPIO_TogglePin(nHB_LED_GPIO_Port, nHB_LED_Pin);
+#if 0
     memset(ret_data_buffer, 0, I2C_BUFFER_SIZE);
     memset((uint8_t *)&ret_data, 0, sizeof(ret_data));
     if (data_available)
@@ -392,8 +404,8 @@ int main(void)
       }
       data_available = NULL;
     }
-
-    HAL_Delay(1);
+#endif
+    HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
