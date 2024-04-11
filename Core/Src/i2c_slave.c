@@ -94,17 +94,22 @@ bool set_transmit_buffer(I2C_TX_Packet* packet, uint16_t packet_id, uint8_t comm
 	_status_packet.status = status_code;
 	_status_packet.data_len = 0;
 	_status_packet.id = packet_id;
+
+	memset(tx_buffer, 0, I2C_BUFFER_SIZE);
 	if(packet)
 	{
 		if(i2c_packet_toBuffer(packet, tx_buffer)>0)
 		{
 			// update tx_packet from this buffer
 			ret = i2c_packet_fromBuffer(tx_buffer, &tx_packet);
-
 		}
 	}else{
-		memset(tx_buffer, 0, I2C_BUFFER_SIZE);
-		ret = i2c_packet_fromBuffer(tx_buffer, &tx_packet);
+		tx_packet.id = packet_id;
+		tx_packet.cmd = command;
+		tx_packet.reserved = _status_packet.reserved;
+		tx_packet.data_len = 0;
+		tx_packet.pData = NULL;
+		if(i2c_packet_toBuffer(&tx_packet, tx_buffer)>0) ret = true;
 	}
 	if(!ret){
 		_status_packet.status = OW_CODE_DATA_ERROR;

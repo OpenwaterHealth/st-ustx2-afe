@@ -106,6 +106,44 @@ static void PrintI2CSpeed(I2C_HandleTypeDef *hi2c)
   printf("I2C Slave Addr: 0x%02x\r\n\r\n", (uint8_t)(hi2c->Init.OwnAddress1 >> 1));
 }
 
+static bool ConfigureClock()
+{
+
+	  HAL_Delay(25);
+	  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1000);
+	  HAL_Delay(25);
+	  I2C_write_CDCE6214_reg(0x67, 0x000F, 0x5020);
+	  HAL_Delay(25);
+
+	  printf("Configuring Clock chip\r\n");
+	  // Calculate the number of elements in the array
+	  size_t num_elements = sizeof(blur6214_64mhz_values) / sizeof(uint32_t);
+
+	  // Iterate through the array and split each uint32_t value into two uint16_t values
+	  for (size_t i = 0; i < num_elements; i++)
+	  {
+	    uint32_t value = blur6214_64mhz_values[i];
+
+	    // Split the value into upper and lower words
+	    uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
+	    uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
+
+	    // Print the split values
+	    if (!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value))
+	    {
+	      printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
+	      return false;
+	    }
+	    HAL_Delay(1);
+	  }
+	  HAL_Delay(100);
+	  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1110);
+	  HAL_Delay(100);
+	  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
+	  HAL_Delay(50);
+
+	  return true;
+}
 /* USER CODE END 0 */
 
 /**
@@ -164,38 +202,7 @@ int main(void)
 
   printf("Scanning Local I2C bus\r\n");
   I2C_scan();
-
-  HAL_Delay(25);
-  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1000);
-  HAL_Delay(25);
-  I2C_write_CDCE6214_reg(0x67, 0x000F, 0x5020);
-  HAL_Delay(25);
-
-  printf("Configuring Clock chip\r\n");
-  // Calculate the number of elements in the array
-  size_t num_elements = sizeof(blur6214_64mhz_values) / sizeof(uint32_t);
-
-  // Iterate through the array and split each uint32_t value into two uint16_t values
-  for (size_t i = 0; i < num_elements; i++)
-  {
-    uint32_t value = blur6214_64mhz_values[i];
-
-    // Split the value into upper and lower words
-    uint16_t reg_addr = (uint16_t)(value >> 16); // Upper word is reg_addr
-    uint16_t reg_value = (uint16_t)value;        // Lower word is reg_value
-
-    // Print the split values
-    if (!I2C_write_CDCE6214_reg(0x67, reg_addr, reg_value))
-    {
-      printf("failed Index %zu: reg_addr = 0x%04X, reg_value = 0x%04X\r\n", i, reg_addr, reg_value);
-    }
-    HAL_Delay(1);
-  }
-
-  HAL_Delay(100);
-  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1110);
-  HAL_Delay(100);
-  I2C_write_CDCE6214_reg(0x67, 0x0000, 0x1100);
+  ConfigureClock();
 
   printf("Initializing TX7332\r\n");
   HAL_GPIO_WritePin(GPIOC, RESET_L_Pin | CW_EN_Pin | STDBY_Pin, GPIO_PIN_RESET);
