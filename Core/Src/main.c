@@ -74,6 +74,7 @@ TX7332 tx[2];
 
 static uint8_t FIRMWARE_VERSION_DATA[3] = {1, 0, 0};
 static uint32_t id_words[3] = {0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -156,6 +157,8 @@ int main(void)
   /* USER CODE BEGIN 1 */
   I2C_TX_Packet ret_data;
   uint8_t ret_data_buffer[I2C_BUFFER_SIZE] = {0};
+  uint16_t address;
+  uint32_t value;
 
   /* USER CODE END 1 */
 
@@ -366,15 +369,69 @@ int main(void)
         // printf("Verifying Demo TX7332 Register Set\r\n");
         // verify_demo_registers(&tx[0]);
         break;
-      case OW_TX7332_WREG:
-        printf("Write REG\r\n");
+      case OW_TX7332_WREG:  //
+        // printf("Write REG TX[%d] \r\n", data_available->reserved); //0x%04x : 0x08x
+        if(data_available->reserved > 1){
+            status_packet->status = OW_CODE_IDENT_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
+        if(data_available->data_len == 6)
+        {
+			// Unpack 16-bit address (first 2 bytes, little-endian)
+			address = data_available->pData[0] | (data_available->pData[1] << 8);
+			// Unpack 32-bit value (next 4 bytes, little-endian)
+			value = data_available->pData[2] | (data_available->pData[3] << 8) | (data_available->pData[4] << 16) | (data_available->pData[5] << 24);
+			// printf("Address: 0x%04x, Value: 0x%08lx\r\n", address, value);
+			TX7332_WriteReg(&tx[data_available->reserved], address, value);
+        }else{
+        	printf("Invalid data \r\n");
+            status_packet->status = OW_CODE_DATA_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
         status_packet->status = 0x00;
         status_packet->data_len = 0;
         break;
       case OW_TX7332_RREG:
-        printf("Read REG\r\n");
-        status_packet->status = 0x00;
-        status_packet->data_len = 0;
+        // printf("Read REG TX[%d] \r\n", data_available->reserved); //0x%04x : 0x08x
+        if(data_available->reserved > 1){
+            status_packet->status = OW_CODE_IDENT_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
+        if(data_available->data_len == 2)
+        {
+			// Unpack 16-bit address (first 2 bytes, little-endian)
+			address = data_available->pData[0] | (data_available->pData[1] << 8);
+			// Set value to 0 before read
+			value = 0;
+			// printf("Address: 0x%04x\r\n", address);
+			value = TX7332_ReadReg(&tx[data_available->reserved], address);
+
+            // Package response
+	        ret_data_buffer[0] = value & 0xFF;
+	        ret_data_buffer[1] = (value >> 8) & 0xFF;
+	        ret_data_buffer[2] = (value >> 16) & 0xFF;
+	        ret_data_buffer[3] = (value >> 24) & 0xFF;
+
+	        ret_data.cmd = data_available->cmd;
+	        ret_data.id = data_available->id;
+	        ret_data.reserved = data_available->reserved;
+	        ret_data.data_len = sizeof(value);
+	        ret_data.pData = ret_data_buffer;
+	        set_transmit_buffer(&ret_data, data_available->id, data_available->cmd, OW_CODE_SUCCESS);
+
+        }else{
+        	printf("Invalid data \r\n");
+            status_packet->status = OW_CODE_DATA_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
         break;
       case OW_TX7332_WBLOCK:
         printf("Write Block\r\n");
