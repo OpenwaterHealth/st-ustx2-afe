@@ -72,7 +72,7 @@ DeviceConfig_t myConfig;
 
 TX7332 tx[2];
 
-static uint8_t FIRMWARE_VERSION_DATA[3] = {1, 0, 0};
+static uint8_t FIRMWARE_VERSION_DATA[3] = {1, 0, 4};
 static uint32_t id_words[3] = {0};
 
 /* USER CODE END PV */
@@ -157,8 +157,10 @@ int main(void)
   /* USER CODE BEGIN 1 */
   I2C_TX_Packet ret_data;
   uint8_t ret_data_buffer[I2C_BUFFER_SIZE] = {0};
+  uint32_t reg_data_buff[62] = {0};
   uint16_t address;
   uint32_t value;
+  uint8_t reg_count;
 
   /* USER CODE END 1 */
 
@@ -194,7 +196,7 @@ int main(void)
   printf("\033c");
 
   init_dma_logging();
-  printf("Openwater USTX2 AFE Development v1.0.3\r\n\r\n");
+  printf("Openwater USTX2 AFE Development FW v%d.%d.%d\r\n\r\n",FIRMWARE_VERSION_DATA[0], FIRMWARE_VERSION_DATA[1], FIRMWARE_VERSION_DATA[2]);
   printf("EEPROM I2C: 0x%02x\r\n", myConfig.i2c_address);
   printf("CPU Clock Frequency: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
 
@@ -264,6 +266,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
     memset(ret_data_buffer, 0, I2C_BUFFER_SIZE);
     memset((uint8_t *)&ret_data, 0, sizeof(ret_data));
+
     if (data_available)
     {
       // Process command
@@ -392,7 +395,7 @@ int main(void)
         	break;
         }
 
-        status_packet->status = 0x00;
+        status_packet->status = OW_CODE_SUCCESS;
         status_packet->data_len = 0;
         break;
       case OW_TX7332_RREG:
@@ -434,13 +437,47 @@ int main(void)
 
         break;
       case OW_TX7332_WBLOCK:
-        printf("Write Block\r\n");
-        status_packet->status = 0x00;
-        status_packet->data_len = 0;
-        break;
-      case OW_TX7332_RBLOCK:
-        printf("Read Block\r\n");
-        status_packet->status = 0x00;
+        if(data_available->reserved > 1){
+            status_packet->status = OW_CODE_IDENT_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
+        if(data_available->data_len >= 7)
+        {
+
+			// Unpack 16-bit address (first 2 bytes, little-endian)
+			address = data_available->pData[0] | (data_available->pData[1] << 8);
+			// Unpack 16-bit address (first 2 bytes, little-endian)
+			reg_count = data_available->pData[2];
+			// byte [3] dummy byte
+			// Check if the actual data length matches expected length
+			if(data_available->data_len != (4 + (4 * reg_count)))
+			{
+	        	printf("Invalid data size does not match \r\n");
+	            status_packet->status = OW_CODE_DATA_ERROR;
+	            status_packet->data_len = 0;
+	        	break;
+			}
+
+			// printf("Write Block Start Addr: 0x%04x, Length: %d\r\n", address, reg_count);
+			memset(reg_data_buff, 0, 62 * sizeof(uint32_t));
+			memcpy((uint8_t*)reg_data_buff, &data_available->pData[4], sizeof(uint32_t) * reg_count);
+			TX7332_WriteBulk(&tx[data_available->reserved], address, reg_data_buff, reg_count);
+
+	        ret_data.cmd = data_available->cmd;
+	        ret_data.id = data_available->id;
+	        ret_data.reserved = data_available->reserved;
+	        ret_data.data_len = 0;
+	        ret_data.pData = NULL;
+        }else{
+        	printf("Invalid data \r\n");
+            status_packet->status = OW_CODE_DATA_ERROR;
+            status_packet->data_len = 0;
+        	break;
+        }
+
+        status_packet->status = OW_CODE_SUCCESS;
         status_packet->data_len = 0;
         break;
       default:

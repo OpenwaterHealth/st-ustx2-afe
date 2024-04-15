@@ -107,7 +107,7 @@ bool TX7332_WriteVerify(TX7332* device, uint16_t addr, uint32_t val){
 	return TX7332_ReadReg(device, addr) == val;
 }
 
-void TX7332_WriteBulk(TX7332* device, uint16_t addr, uint32_t* be_bytes, int len) {
+void TX7332_WriteBulk(TX7332* device, uint16_t addr, uint32_t* pInts, int len) {
     if (len > 1) {
         TX7332_WriteReg(device, 0, BURST_WR_EN);
     }
@@ -116,8 +116,9 @@ void TX7332_WriteBulk(TX7332* device, uint16_t addr, uint32_t* be_bytes, int len
     WriteAddr(addr);
 
     for (int i = 0; i < len; ++i) {
-        uint32_t val = SwapEndian(be_bytes[i]);
-        HAL_SPI_Transmit(spi_, (uint8_t*)&val, 4, HAL_MAX_DELAY);
+    	uint32_t val = *(pInts + i);
+        uint32_t swap_val = SwapEndian(val);
+        HAL_SPI_Transmit(spi_, (uint8_t*)&swap_val, 4, HAL_MAX_DELAY);
     }
 
     HAL_GPIO_WritePin(device->cs_port, device->cs_pin, GPIO_PIN_SET);
