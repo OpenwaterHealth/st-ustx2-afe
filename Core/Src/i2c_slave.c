@@ -39,7 +39,7 @@ __IO int countError = 0;
 void I2C_Slave_Init(uint8_t addr) {
 
 
-  if(addr == 0x00 || addr > 0x3F){
+  if(addr == 0x00 || addr > 0x7F){
 	  I2C_DEVICE.Init.OwnAddress1  = 0x32 << 1;  // default to 32
   }else{
 	  I2C_DEVICE.Init.OwnAddress1  = addr << 1;
