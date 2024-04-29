@@ -230,11 +230,11 @@ int main(void)
   HAL_Delay(100);
 
   printf("Writing Demo TX7332 [0] Register Set\r\n");
-  write_demo_registers(&tx[0]);
+  write_brownout_registers(&tx[0]);
   HAL_Delay(500);
 
   printf("Writing Demo TX7332 [1] Register Set\r\n");
-  write_demo_registers(&tx[1]);
+  write_brownout_registers(&tx[1]);
   HAL_Delay(500);
 
   printf("Waiting for trigger pulse\r\n");

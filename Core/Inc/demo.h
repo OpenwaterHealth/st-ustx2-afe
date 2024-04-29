@@ -18,5 +18,6 @@ int verify_demo_registers(TX7332* pT);
 void write_test_pattern_registers(TX7332* pT);
 int verify_test_pattern_registers(TX7332* pT);
 void write_block_registers(TX7332* pT, uint8_t* data, uint16_t data_len);
+void write_brownout_registers(TX7332* pT);
 
 #endif /* INC_DEMO_H_ */
