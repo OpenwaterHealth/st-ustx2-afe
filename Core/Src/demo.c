@@ -82,6 +82,43 @@ unsigned int reg_brownout_values[][2] = {
 	    {0x121, 0x0007D091},
     };
 
+unsigned int reg_brownout2_values[][2] = {
+        {0x00, 0x00000000},
+        {0x01, 0x00000000},
+        {0x06, 0x00000000},
+        {0x0B, 0x00000000},
+        {0x0C, 0x00000000},
+        {0x0F, 0x00000000},
+        {0x14, 0x00000000},
+        {0x15, 0x00000000},
+        {0x16, 0x00000000},
+        {0x17, 0x00000000},
+        {0x18, 0x02000003},
+        {0x19, 0x04E20F40},
+        {0x1A, 0x00000000},
+        {0x1B, 0x00000000},
+        {0x1E, 0x00000000},
+        {0x1F, 0x00000000},
+		{0x20, 0x07C00740},
+		{0x21, 0x06C0063F},
+		{0x22, 0x05C00540},
+		{0x23, 0x04BF0440},
+		{0x24, 0x077F0700},
+		{0x25, 0x06800600},
+		{0x26, 0x05800500},
+		{0x27, 0x04800400},
+		{0x28, 0x03BF0340},
+		{0x29, 0x02C00240},
+		{0x2A, 0x01C00140},
+		{0x2B, 0x00C00040},
+		{0x2C, 0x03800300},
+		{0x2D, 0x02800200},
+		{0x2E, 0x01800100},
+		{0x2F, 0x00800000},
+	    {0x120, 0xF1D092F2},
+	    {0x121, 0x0007D091},
+    };
+
 unsigned int reg_1mhz_3p_values[][2] = {
 	    // GLOBAL
 		{0x00,0x00000000},
@@ -503,10 +540,10 @@ void write_demo_registers(TX7332* pT)
 
 void write_brownout_registers(TX7332* pT)
 {
-	int num_registers = sizeof(reg_brownout_values) / sizeof(reg_brownout_values[0]);
+	int num_registers = sizeof(reg_brownout2_values) / sizeof(reg_brownout2_values[0]);
 	for (int i = 0; i < num_registers; i++) {
-        unsigned int reg_address = reg_brownout_values[i][0];
-        unsigned int expected_value = reg_brownout_values[i][1];
+        unsigned int reg_address = reg_brownout2_values[i][0];
+        unsigned int expected_value = reg_brownout2_values[i][1];
 		TX7332_WriteReg(pT, reg_address, expected_value);
 	}
 }
