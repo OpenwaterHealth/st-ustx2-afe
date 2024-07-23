@@ -1,3 +1,4 @@
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -104,6 +105,7 @@ void HAL_CRC_MspInit(CRC_HandleTypeDef* hcrc)
   /* USER CODE BEGIN CRC_MspInit 1 */
 
   /* USER CODE END CRC_MspInit 1 */
+
   }
 
 }
@@ -324,6 +326,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
   /* USER CODE BEGIN SPI1_MspInit 1 */
 
   /* USER CODE END SPI1_MspInit 1 */
+
   }
 
 }
@@ -376,6 +379,7 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
   /* USER CODE BEGIN TIM3_MspInit 1 */
 
   /* USER CODE END TIM3_MspInit 1 */
+
   }
 
 }
@@ -398,6 +402,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM21_MspInit 1 */
 
   /* USER CODE END TIM21_MspInit 1 */
+
   }
 
 }
@@ -541,6 +546,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   /* USER CODE BEGIN USART5_MspInit 1 */
 
   /* USER CODE END USART5_MspInit 1 */
+
   }
 
 }
